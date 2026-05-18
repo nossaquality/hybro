@@ -1,4 +1,4 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import {
   Sidebar,
   SidebarContent,
@@ -11,16 +11,15 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { Activity, CalendarDays, Footprints, Dumbbell, Sparkles, Home, RotateCcw } from "lucide-react";
-import { resetOnboarding } from "@/lib/store";
-import { useNavigate } from "@tanstack/react-router";
+import { Activity, CalendarDays, Footprints, Dumbbell, Sparkles, Home, LogOut } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 const items = [
-  { title: "Today", url: "/app", icon: Home },
-  { title: "Weekly Calendar", url: "/app/calendar", icon: CalendarDays },
-  { title: "Running Plan", url: "/app/running", icon: Footprints },
-  { title: "Strength Plan", url: "/app/strength", icon: Dumbbell },
-  { title: "AI Coach", url: "/app/coach", icon: Sparkles },
+  { title: "Início / Hoje", url: "/app", icon: Home },
+  { title: "Calendário Semanal", url: "/app/calendar", icon: CalendarDays },
+  { title: "Planilha · Corrida", url: "/app/running", icon: Footprints },
+  { title: "Planilha · Musculação", url: "/app/strength", icon: Dumbbell },
+  { title: "Chat com Treinador IA", url: "/app/coach", icon: Sparkles },
 ];
 
 export function AppSidebar() {
@@ -36,13 +35,13 @@ export function AppSidebar() {
           </div>
           <div className="flex flex-col leading-tight">
             <span className="text-base font-semibold tracking-tight">Stride</span>
-            <span className="text-xs text-muted-foreground">Run + Strength</span>
+            <span className="text-xs text-muted-foreground">Corrida + Força</span>
           </div>
         </div>
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Workspace</SidebarGroupLabel>
+          <SidebarGroupLabel>Menu</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {items.map((item) => {
@@ -69,13 +68,13 @@ export function AppSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
-              onClick={() => {
-                resetOnboarding();
-                navigate({ to: "/onboarding" });
+              onClick={async () => {
+                await supabase.auth.signOut();
+                navigate({ to: "/login" });
               }}
             >
-              <RotateCcw className="h-4 w-4" />
-              <span>Restart onboarding</span>
+              <LogOut className="h-4 w-4" />
+              <span>Sair</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

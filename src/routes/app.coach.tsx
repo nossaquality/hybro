@@ -4,63 +4,63 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Sparkles, Send, User } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useServerFn } from "@tanstack/react-start";
+import { chatCoach } from "@/lib/ai.functions";
+import { getChatMessages } from "@/lib/data";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/app/coach")({
   component: Coach,
 });
 
-type Msg = { role: "user" | "coach"; text: string };
+type Msg = { role: "user" | "assistant"; content: string };
 
 const SUGGESTIONS = [
-  "I'm too sore today, can you lighten tomorrow's workout?",
-  "I missed my long run on Saturday — how do I reschedule?",
-  "Can we swap Thursday's strength for mobility?",
-  "How should I fuel before my interval session?",
+  "Estou muito dolorido hoje, dá pra deixar o treino de amanhã mais leve?",
+  "Perdi meu longão de sábado — como remarcar?",
+  "Posso trocar a musculação de quinta por mobilidade?",
+  "O que devo comer antes de uma sessão de tiros?",
 ];
 
 const INTRO: Msg = {
-  role: "coach",
-  text:
-    "Hi! I'm your AI Coach. I can adjust your plan in real time — swap days, scale intensity, or rebuild a week around how you're feeling. What's on your mind?",
+  role: "assistant",
+  content:
+    "Oi! Eu sou seu Treinador IA. Posso ajustar seu plano em tempo real — trocar dias, escalar intensidade, ou reconstruir a semana conforme você se sente. No que posso ajudar?",
 };
-
-function mockReply(input: string): string {
-  const q = input.toLowerCase();
-  if (q.includes("sore") || q.includes("tired")) {
-    return "Got it — let's protect recovery. I'll convert tomorrow's session into 25 minutes of easy mobility + a short walk. We'll move the strength block to Friday and keep your long run intact. Want me to apply this?";
-  }
-  if (q.includes("missed") || q.includes("reschedule")) {
-    return "No stress, missing one run won't derail your plan. I'll shift the long run to Sunday at reduced volume (8 km easy) and turn Monday into a recovery jog. Your weekly load stays balanced.";
-  }
-  if (q.includes("swap") || q.includes("change")) {
-    return "Sure thing. Swapping Thursday's strength session for a 30-minute mobility flow. I'll add the strength block back into Sunday so you don't lose the stimulus.";
-  }
-  if (q.includes("fuel") || q.includes("eat")) {
-    return "For intervals, aim for ~60–80g of carbs about 2 hours before (oats + banana works great). Sip water in the hour leading up. If it's an early session, a small piece of toast with honey is enough.";
-  }
-  return "Thanks for sharing. Based on your goal and current week, I'd suggest keeping today's plan as-is and reassessing tomorrow morning. Want me to pre-adjust anything else?";
-}
 
 function Coach() {
   const [messages, setMessages] = useState<Msg[]>([INTRO]);
   const [input, setInput] = useState("");
   const [thinking, setThinking] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const send = useServerFn(chatCoach);
+
+  useEffect(() => {
+    getChatMessages().then((hist) => {
+      if (hist.length > 0) {
+        setMessages(hist.map((m) => ({ role: m.role as "user" | "assistant", content: m.content })));
+      }
+    });
+  }, []);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, thinking]);
 
-  function send(text: string) {
+  async function sendMessage(text: string) {
     const trimmed = text.trim();
-    if (!trimmed) return;
-    setMessages((m) => [...m, { role: "user", text: trimmed }]);
+    if (!trimmed || thinking) return;
+    setMessages((m) => [...m, { role: "user", content: trimmed }]);
     setInput("");
     setThinking(true);
-    setTimeout(() => {
-      setMessages((m) => [...m, { role: "coach", text: mockReply(trimmed) }]);
+    try {
+      const { reply } = await send({ data: { message: trimmed } });
+      setMessages((m) => [...m, { role: "assistant", content: reply }]);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao falar com a IA");
+    } finally {
       setThinking(false);
-    }, 900);
+    }
   }
 
   return (
@@ -70,9 +70,9 @@ function Coach() {
           <Sparkles className="h-5 w-5" />
         </div>
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">AI Coach</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Chat com Treinador IA</h1>
           <p className="text-sm text-muted-foreground">
-            Ask for plan adjustments, swaps, or training advice — anytime.
+            Peça ajustes de plano, trocas e dicas de treino — a qualquer hora.
           </p>
         </div>
       </div>
@@ -84,7 +84,7 @@ function Coach() {
           ))}
           {thinking && (
             <div className="flex items-start gap-3">
-              <Avatar role="coach" />
+              <Avatar role="assistant" />
               <div className="rounded-2xl rounded-tl-sm bg-muted px-4 py-3">
                 <div className="flex gap-1">
                   <Dot delay="0ms" />
@@ -99,13 +99,13 @@ function Coach() {
         {messages.length <= 1 && (
           <div className="border-t bg-muted/30 px-5 py-3">
             <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Try asking
+              Experimente perguntar
             </p>
             <div className="flex flex-wrap gap-2">
               {SUGGESTIONS.map((s) => (
                 <button
                   key={s}
-                  onClick={() => send(s)}
+                  onClick={() => sendMessage(s)}
                   className="rounded-full border border-border bg-background px-3 py-1.5 text-xs text-foreground transition-colors hover:border-primary/40 hover:text-primary"
                 >
                   {s}
@@ -118,14 +118,14 @@ function Coach() {
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            send(input);
+            sendMessage(input);
           }}
           className="flex items-center gap-2 border-t bg-background p-3"
         >
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Message your coach…"
+            placeholder="Escreva para seu treinador…"
             className="flex-1 rounded-xl border border-input bg-background px-4 py-2.5 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
           />
           <Button type="submit" disabled={!input.trim() || thinking} className="rounded-xl">
@@ -144,19 +144,19 @@ function Bubble({ msg }: { msg: Msg }) {
       <Avatar role={msg.role} />
       <div
         className={cn(
-          "max-w-[80%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed",
+          "max-w-[80%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap",
           isUser
             ? "rounded-tr-sm bg-primary text-primary-foreground"
             : "rounded-tl-sm bg-muted text-foreground",
         )}
       >
-        {msg.text}
+        {msg.content}
       </div>
     </div>
   );
 }
 
-function Avatar({ role }: { role: "user" | "coach" }) {
+function Avatar({ role }: { role: "user" | "assistant" }) {
   if (role === "user") {
     return (
       <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-secondary text-secondary-foreground">

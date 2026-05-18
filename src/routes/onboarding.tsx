@@ -1,90 +1,124 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Navigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import {
-  type Equipment,
-  type Goal,
-  type Level,
-  saveOnboarding,
-} from "@/lib/store";
-import { Activity, Dumbbell, Target, Calendar, Sparkles, Check } from "lucide-react";
+  Activity,
+  Dumbbell,
+  Target,
+  Calendar,
+  Sparkles,
+  Check,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { gerarPlano } from "@/lib/ai.functions";
+import { useServerFn } from "@tanstack/react-start";
+import { toast } from "sonner";
+import { getProfile } from "@/lib/data";
+
+type Nivel = "iniciante" | "intermediario" | "avancado";
+type Objetivo = "resistencia" | "velocidade" | "perda_peso" | "prevencao_lesoes";
 
 export const Route = createFileRoute("/onboarding")({
   component: Onboarding,
   head: () => ({
     meta: [
-      { title: "Get started · Stride" },
-      { name: "description", content: "Build your personalized running + strength plan." },
+      { title: "Começar · Stride" },
+      { name: "description", content: "Monte seu plano personalizado de corrida e musculação em casa." },
     ],
   }),
 });
 
-const LEVELS: { id: Level; title: string; desc: string }[] = [
-  { id: "beginner", title: "Beginner", desc: "New to running or returning after a break" },
-  { id: "intermediate", title: "Intermediate", desc: "Running 15–30 km / week consistently" },
-  { id: "advanced", title: "Advanced", desc: "Training for performance, 40+ km / week" },
+const NIVEIS: { id: Nivel; title: string; desc: string }[] = [
+  { id: "iniciante", title: "Iniciante", desc: "Começando ou voltando depois de uma pausa" },
+  { id: "intermediario", title: "Intermediário", desc: "Corre 15–30 km por semana com regularidade" },
+  { id: "avancado", title: "Avançado", desc: "Treina para performance, 40+ km por semana" },
 ];
 
-const GOALS: { id: Goal; title: string; desc: string }[] = [
-  { id: "endurance", title: "Build Endurance", desc: "Run longer, feel stronger" },
-  { id: "speed", title: "Get Faster", desc: "Improve pace & race times" },
-  { id: "weight_loss", title: "Lose Weight", desc: "Sustainable fat loss" },
-  { id: "injury_prevention", title: "Stay Injury-Free", desc: "Resilience & mobility" },
+const OBJETIVOS: { id: Objetivo; title: string; desc: string }[] = [
+  { id: "resistencia", title: "Ganhar Resistência", desc: "Correr mais longe, mais forte" },
+  { id: "velocidade", title: "Ganhar Velocidade", desc: "Melhorar pace e tempos de prova" },
+  { id: "perda_peso", title: "Perder Peso", desc: "Emagrecimento sustentável" },
+  { id: "prevencao_lesoes", title: "Prevenir Lesões", desc: "Resiliência e mobilidade" },
 ];
 
-const EQUIPMENT: { id: Equipment; title: string }[] = [
-  { id: "bodyweight", title: "Bodyweight only" },
-  { id: "dumbbells", title: "Dumbbells" },
-  { id: "bands", title: "Resistance bands" },
+const EQUIPAMENTOS = [
+  { id: "peso_corporal", title: "Só peso corporal" },
+  { id: "halteres", title: "Halteres" },
+  { id: "elasticos", title: "Elásticos de resistência" },
   { id: "kettlebell", title: "Kettlebell" },
-  { id: "pullup_bar", title: "Pull-up bar" },
+  { id: "barra_fixa", title: "Barra fixa" },
 ];
 
 function Onboarding() {
   const navigate = useNavigate();
+  const [authReady, setAuthReady] = useState(false);
+  const [authed, setAuthed] = useState(false);
+  const [alreadyDone, setAlreadyDone] = useState(false);
   const [step, setStep] = useState(0);
   const [generating, setGenerating] = useState(false);
 
   const [name, setName] = useState("");
-  const [level, setLevel] = useState<Level | null>(null);
-  const [days, setDays] = useState<number>(4);
-  const [goal, setGoal] = useState<Goal | null>(null);
-  const [equipment, setEquipment] = useState<Equipment[]>(["bodyweight"]);
+  const [nivel, setNivel] = useState<Nivel | null>(null);
+  const [dias, setDias] = useState<number>(4);
+  const [objetivo, setObjetivo] = useState<Objetivo | null>(null);
+  const [equipamentos, setEquipamentos] = useState<string[]>(["peso_corporal"]);
 
-  const steps = ["You", "Level", "Schedule", "Goal", "Equipment"];
+  const gerar = useServerFn(gerarPlano);
+
+  useEffect(() => {
+    (async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setAuthReady(true);
+        return;
+      }
+      const profile = await getProfile();
+      if (profile?.onboarding_completed) setAlreadyDone(true);
+      if (profile?.name) setName(profile.name);
+      setAuthed(true);
+      setAuthReady(true);
+    })();
+  }, []);
+
+  const steps = ["Você", "Nível", "Agenda", "Objetivo", "Equipamento"];
 
   const canNext =
     (step === 0 && name.trim().length > 0) ||
-    (step === 1 && !!level) ||
-    (step === 2 && days >= 2 && days <= 7) ||
-    (step === 3 && !!goal) ||
-    (step === 4 && equipment.length > 0);
+    (step === 1 && !!nivel) ||
+    (step === 2 && dias >= 2 && dias <= 7) ||
+    (step === 3 && !!objetivo) ||
+    (step === 4 && equipamentos.length > 0);
 
-  function toggleEquip(e: Equipment) {
-    setEquipment((prev) => (prev.includes(e) ? prev.filter((x) => x !== e) : [...prev, e]));
+  function toggleEquip(e: string) {
+    setEquipamentos((prev) => (prev.includes(e) ? prev.filter((x) => x !== e) : [...prev, e]));
   }
 
-  function finish() {
+  async function finish() {
     setGenerating(true);
-    setTimeout(() => {
-      saveOnboarding({
-        name: name.trim(),
-        level: level!,
-        daysPerWeek: days,
-        goal: goal!,
-        equipment,
-        completedAt: new Date().toISOString(),
+    try {
+      await gerar({
+        data: {
+          name: name.trim(),
+          nivel_corrida: nivel!,
+          dias_disponiveis: dias,
+          objetivo_principal: objetivo!,
+          equipamentos_casa: equipamentos,
+        },
       });
       navigate({ to: "/app" });
-    }, 2400);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao gerar plano");
+      setGenerating(false);
+    }
   }
 
-  if (generating) {
-    return <GeneratingScreen name={name} />;
-  }
+  if (!authReady) return null;
+  if (!authed) return <Navigate to="/login" />;
+  if (alreadyDone) return <Navigate to="/app" />;
+  if (generating) return <GeneratingScreen name={name} />;
 
   return (
     <div className="min-h-screen bg-background">
@@ -108,19 +142,19 @@ function Onboarding() {
           ))}
         </div>
         <p className="mb-6 text-sm text-muted-foreground">
-          Step {step + 1} of {steps.length} · {steps[step]}
+          Etapa {step + 1} de {steps.length} · {steps[step]}
         </p>
 
         <Card className="rounded-2xl border-border/60 p-6 shadow-sm sm:p-8">
           {step === 0 && (
             <div className="space-y-4">
-              <h1 className="text-2xl font-semibold tracking-tight">Welcome 👋</h1>
+              <h1 className="text-2xl font-semibold tracking-tight">Bem-vindo(a) 👋</h1>
               <p className="text-muted-foreground">
-                Let's build your personalized running + home strength plan. First, what should we call you?
+                Vamos montar seu plano personalizado de corrida + musculação em casa. Primeiro, como podemos te chamar?
               </p>
               <Input
                 autoFocus
-                placeholder="Your first name"
+                placeholder="Seu primeiro nome"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="h-12 text-base"
@@ -130,13 +164,13 @@ function Onboarding() {
 
           {step === 1 && (
             <div className="space-y-4">
-              <h1 className="text-2xl font-semibold tracking-tight">What's your running level?</h1>
+              <h1 className="text-2xl font-semibold tracking-tight">Qual seu nível de corrida?</h1>
               <div className="space-y-2">
-                {LEVELS.map((l) => (
+                {NIVEIS.map((l) => (
                   <OptionRow
                     key={l.id}
-                    selected={level === l.id}
-                    onClick={() => setLevel(l.id)}
+                    selected={nivel === l.id}
+                    onClick={() => setNivel(l.id)}
                     title={l.title}
                     desc={l.desc}
                   />
@@ -147,18 +181,18 @@ function Onboarding() {
 
           {step === 2 && (
             <div className="space-y-5">
-              <h1 className="text-2xl font-semibold tracking-tight">How many days per week?</h1>
+              <h1 className="text-2xl font-semibold tracking-tight">Quantos dias por semana?</h1>
               <p className="text-muted-foreground">
-                Including running, strength and mobility — be realistic.
+                Incluindo corrida, musculação e mobilidade — seja realista.
               </p>
               <div className="grid grid-cols-6 gap-2">
                 {[2, 3, 4, 5, 6, 7].map((d) => (
                   <button
                     key={d}
-                    onClick={() => setDays(d)}
+                    onClick={() => setDias(d)}
                     className={cn(
                       "rounded-xl border py-4 text-lg font-semibold transition-all",
-                      days === d
+                      dias === d
                         ? "border-primary bg-primary/5 text-primary"
                         : "border-border hover:border-primary/40",
                     )}
@@ -172,13 +206,13 @@ function Onboarding() {
 
           {step === 3 && (
             <div className="space-y-4">
-              <h1 className="text-2xl font-semibold tracking-tight">What's your main goal?</h1>
+              <h1 className="text-2xl font-semibold tracking-tight">Qual seu objetivo principal?</h1>
               <div className="grid gap-2 sm:grid-cols-2">
-                {GOALS.map((g) => (
+                {OBJETIVOS.map((g) => (
                   <OptionRow
                     key={g.id}
-                    selected={goal === g.id}
-                    onClick={() => setGoal(g.id)}
+                    selected={objetivo === g.id}
+                    onClick={() => setObjetivo(g.id)}
                     title={g.title}
                     desc={g.desc}
                   />
@@ -189,11 +223,11 @@ function Onboarding() {
 
           {step === 4 && (
             <div className="space-y-4">
-              <h1 className="text-2xl font-semibold tracking-tight">Home gym equipment</h1>
-              <p className="text-muted-foreground">Pick everything you have available.</p>
+              <h1 className="text-2xl font-semibold tracking-tight">Equipamentos em casa</h1>
+              <p className="text-muted-foreground">Selecione tudo que você tem disponível.</p>
               <div className="grid gap-2 sm:grid-cols-2">
-                {EQUIPMENT.map((e) => {
-                  const active = equipment.includes(e.id);
+                {EQUIPAMENTOS.map((e) => {
+                  const active = equipamentos.includes(e.id);
                   return (
                     <button
                       key={e.id}
@@ -224,7 +258,7 @@ function Onboarding() {
               disabled={step === 0}
               onClick={() => setStep((s) => Math.max(0, s - 1))}
             >
-              Back
+              Voltar
             </Button>
             {step < steps.length - 1 ? (
               <Button
@@ -233,7 +267,7 @@ function Onboarding() {
                 onClick={() => setStep((s) => s + 1)}
                 className="rounded-xl"
               >
-                Continue
+                Continuar
               </Button>
             ) : (
               <Button
@@ -243,17 +277,22 @@ function Onboarding() {
                 className="rounded-xl bg-energy text-energy-foreground hover:bg-energy/90"
               >
                 <Sparkles className="mr-1.5 h-4 w-4" />
-                Generate my plan
+                Gerar meu plano
               </Button>
             )}
           </div>
         </Card>
 
         <div className="mt-6 grid grid-cols-3 gap-3 text-center text-xs text-muted-foreground">
-          <Hint icon={<Calendar className="h-4 w-4" />} label="Smart weekly schedule" />
-          <Hint icon={<Target className="h-4 w-4" />} label="Built around your goal" />
-          <Hint icon={<Dumbbell className="h-4 w-4" />} label="Home-friendly strength" />
+          <Hint icon={<Calendar className="h-4 w-4" />} label="Agenda semanal inteligente" />
+          <Hint icon={<Target className="h-4 w-4" />} label="Adaptado ao seu objetivo" />
+          <Hint icon={<Dumbbell className="h-4 w-4" />} label="Musculação em casa" />
         </div>
+
+        <p className="mt-8 rounded-xl border border-energy/30 bg-energy-soft/40 p-4 text-center text-xs text-muted-foreground">
+          <strong className="text-foreground">Nota:</strong> Este plano é gerado por inteligência artificial.
+          Consulte um profissional de educação física ou médico antes de iniciar qualquer atividade física.
+        </p>
       </div>
     </div>
   );
@@ -307,16 +346,16 @@ function GeneratingScreen({ name }: { name: string }) {
           </div>
         </div>
         <h2 className="text-2xl font-semibold tracking-tight">
-          Building your plan{name ? `, ${name}` : ""}…
+          Montando seu plano{name ? `, ${name}` : ""}…
         </h2>
         <p className="mt-2 text-muted-foreground">
-          Our AI coach is balancing your runs, strength sessions and recovery.
+          Nossa IA está equilibrando suas corridas, treinos de força e recuperação.
         </p>
         <div className="mt-8 space-y-2 text-left text-sm">
-          <Step label="Analyzing your level & goal" delay={0} />
-          <Step label="Mapping weekly schedule" delay={600} />
-          <Step label="Selecting home strength circuits" delay={1200} />
-          <Step label="Finalizing your dashboard" delay={1800} />
+          <Step label="Analisando seu nível e objetivo" delay={0} />
+          <Step label="Mapeando a agenda semanal" delay={600} />
+          <Step label="Selecionando circuitos de musculação em casa" delay={1200} />
+          <Step label="Finalizando seu dashboard" delay={1800} />
         </div>
       </div>
     </div>
