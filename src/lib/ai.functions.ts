@@ -125,7 +125,7 @@ export const gerarPlano = createServerFn({ method: "POST" })
 
     const { data: inserted, error } = await supabase
       .from("planos_treino")
-      .insert({ user_id: userId, plano: plano as unknown as Record<string, unknown>, ativo: true })
+      .insert({ user_id: userId, plano: JSON.parse(JSON.stringify(plano)), ativo: true })
       .select("id")
       .single();
     if (error) throw new Error(error.message);
