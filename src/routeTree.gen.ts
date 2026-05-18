@@ -13,6 +13,7 @@ import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppIndexRouteImport } from './routes/app.index'
+import { Route as AppStrengthRouteImport } from './routes/app.strength'
 import { Route as AppRunningRouteImport } from './routes/app.running'
 import { Route as AppCalendarRouteImport } from './routes/app.calendar'
 
@@ -36,6 +37,11 @@ const AppIndexRoute = AppIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppRoute,
 } as any)
+const AppStrengthRoute = AppStrengthRouteImport.update({
+  id: '/strength',
+  path: '/strength',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppRunningRoute = AppRunningRouteImport.update({
   id: '/running',
   path: '/running',
@@ -53,6 +59,7 @@ export interface FileRoutesByFullPath {
   '/onboarding': typeof OnboardingRoute
   '/app/calendar': typeof AppCalendarRoute
   '/app/running': typeof AppRunningRoute
+  '/app/strength': typeof AppStrengthRoute
   '/app/': typeof AppIndexRoute
 }
 export interface FileRoutesByTo {
@@ -60,6 +67,7 @@ export interface FileRoutesByTo {
   '/onboarding': typeof OnboardingRoute
   '/app/calendar': typeof AppCalendarRoute
   '/app/running': typeof AppRunningRoute
+  '/app/strength': typeof AppStrengthRoute
   '/app': typeof AppIndexRoute
 }
 export interface FileRoutesById {
@@ -69,6 +77,7 @@ export interface FileRoutesById {
   '/onboarding': typeof OnboardingRoute
   '/app/calendar': typeof AppCalendarRoute
   '/app/running': typeof AppRunningRoute
+  '/app/strength': typeof AppStrengthRoute
   '/app/': typeof AppIndexRoute
 }
 export interface FileRouteTypes {
@@ -79,9 +88,16 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/app/calendar'
     | '/app/running'
+    | '/app/strength'
     | '/app/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/onboarding' | '/app/calendar' | '/app/running' | '/app'
+  to:
+    | '/'
+    | '/onboarding'
+    | '/app/calendar'
+    | '/app/running'
+    | '/app/strength'
+    | '/app'
   id:
     | '__root__'
     | '/'
@@ -89,6 +105,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/app/calendar'
     | '/app/running'
+    | '/app/strength'
     | '/app/'
   fileRoutesById: FileRoutesById
 }
@@ -128,6 +145,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/strength': {
+      id: '/app/strength'
+      path: '/strength'
+      fullPath: '/app/strength'
+      preLoaderRoute: typeof AppStrengthRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/running': {
       id: '/app/running'
       path: '/running'
@@ -148,12 +172,14 @@ declare module '@tanstack/react-router' {
 interface AppRouteChildren {
   AppCalendarRoute: typeof AppCalendarRoute
   AppRunningRoute: typeof AppRunningRoute
+  AppStrengthRoute: typeof AppStrengthRoute
   AppIndexRoute: typeof AppIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppCalendarRoute: AppCalendarRoute,
   AppRunningRoute: AppRunningRoute,
+  AppStrengthRoute: AppStrengthRoute,
   AppIndexRoute: AppIndexRoute,
 }
 
