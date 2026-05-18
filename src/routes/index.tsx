@@ -1,20 +1,24 @@
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { loadOnboarding } from "@/lib/store";
+import { supabase } from "@/integrations/supabase/client";
+import { getProfile } from "@/lib/data";
 
 export const Route = createFileRoute("/")({
   component: Index,
 });
 
 function Index() {
-  const [ready, setReady] = useState(false);
-  const [hasOnboarding, setHasOnboarding] = useState(false);
+  const [target, setTarget] = useState<string | null>(null);
 
   useEffect(() => {
-    setHasOnboarding(!!loadOnboarding());
-    setReady(true);
+    (async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return setTarget("/login");
+      const profile = await getProfile();
+      setTarget(profile?.onboarding_completed ? "/app" : "/onboarding");
+    })();
   }, []);
 
-  if (!ready) return null;
-  return <Navigate to={hasOnboarding ? "/app" : "/onboarding"} />;
+  if (!target) return null;
+  return <Navigate to={target} />;
 }
