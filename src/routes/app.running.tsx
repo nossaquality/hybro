@@ -1,13 +1,20 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
-import { RUNNING_PLAN } from "@/lib/mock-plan";
 import { Footprints, Sunrise, Activity, Sunset, NotebookPen } from "lucide-react";
+import { getActivePlan } from "@/lib/data";
+import type { PlanoTreino } from "@/lib/plan-types";
 
 export const Route = createFileRoute("/app/running")({
   component: RunningPlan,
 });
 
 function RunningPlan() {
+  const [plano, setPlano] = useState<PlanoTreino | null>(null);
+  useEffect(() => {
+    getActivePlan().then(setPlano);
+  }, []);
+
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
       <div className="mb-8 flex items-center gap-3">
@@ -15,34 +22,38 @@ function RunningPlan() {
           <Footprints className="h-6 w-6" />
         </div>
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight">Running Plan</h1>
+          <h1 className="text-3xl font-semibold tracking-tight">Planilha de Corrida</h1>
           <p className="text-muted-foreground">
-            Full week of runs with warm-ups, main sets and cool-downs.
+            Semana completa com aquecimento, treino principal e desaquecimento.
           </p>
         </div>
       </div>
 
-      <div className="space-y-5">
-        {RUNNING_PLAN.map((session) => (
-          <Card
-            key={session.day}
-            className="overflow-hidden rounded-2xl border-running/20 shadow-sm"
-          >
-            <div className="border-b border-running/20 bg-running-soft/50 px-5 py-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-running">
-                {session.day}
-              </p>
-              <h2 className="text-lg font-semibold">{session.title}</h2>
-            </div>
-            <div className="grid gap-4 p-5 sm:grid-cols-2">
-              <Block icon={<Sunrise className="h-4 w-4" />} label="Warm-up" text={session.warmup} />
-              <Block icon={<Activity className="h-4 w-4" />} label="Main set" text={session.main} />
-              <Block icon={<Sunset className="h-4 w-4" />} label="Cool-down" text={session.cooldown} />
-              <Block icon={<NotebookPen className="h-4 w-4" />} label="Notes" text={session.notes} />
-            </div>
-          </Card>
-        ))}
-      </div>
+      {!plano ? (
+        <p className="text-muted-foreground">Carregando…</p>
+      ) : (
+        <div className="space-y-5">
+          {plano.corrida.map((session, i) => (
+            <Card
+              key={`${session.dia}-${i}`}
+              className="overflow-hidden rounded-2xl border-running/20 shadow-sm"
+            >
+              <div className="border-b border-running/20 bg-running-soft/50 px-5 py-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-running">
+                  {session.dia}
+                </p>
+                <h2 className="text-lg font-semibold">{session.titulo}</h2>
+              </div>
+              <div className="grid gap-4 p-5 sm:grid-cols-2">
+                <Block icon={<Sunrise className="h-4 w-4" />} label="Aquecimento" text={session.aquecimento} />
+                <Block icon={<Activity className="h-4 w-4" />} label="Principal" text={session.principal} />
+                <Block icon={<Sunset className="h-4 w-4" />} label="Desaquecimento" text={session.desaquecimento} />
+                <Block icon={<NotebookPen className="h-4 w-4" />} label="Notas" text={session.notas} />
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
