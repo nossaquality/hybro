@@ -2,23 +2,41 @@ import { createFileRoute, Outlet, Navigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
-import { loadOnboarding, type OnboardingData } from "@/lib/store";
+import { supabase } from "@/integrations/supabase/client";
+import { getProfile, type Profile } from "@/lib/data";
 
 export const Route = createFileRoute("/app")({
   component: AppLayout,
 });
 
+const OBJ_LABEL: Record<string, string> = {
+  resistencia: "Resistência",
+  velocidade: "Velocidade",
+  perda_peso: "Perda de peso",
+  prevencao_lesoes: "Prevenção de lesões",
+};
+
 function AppLayout() {
   const [ready, setReady] = useState(false);
-  const [data, setData] = useState<OnboardingData | null>(null);
+  const [authed, setAuthed] = useState(false);
+  const [profile, setProfile] = useState<Profile | null>(null);
 
   useEffect(() => {
-    setData(loadOnboarding());
-    setReady(true);
+    (async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setReady(true);
+        return;
+      }
+      setAuthed(true);
+      setProfile(await getProfile());
+      setReady(true);
+    })();
   }, []);
 
   if (!ready) return null;
-  if (!data) return <Navigate to="/onboarding" />;
+  if (!authed) return <Navigate to="/login" />;
+  if (!profile?.onboarding_completed) return <Navigate to="/onboarding" />;
 
   return (
     <SidebarProvider>
@@ -29,17 +47,17 @@ function AppLayout() {
             <SidebarTrigger />
             <div className="flex flex-1 items-center justify-between">
               <div className="text-sm text-muted-foreground">
-                Welcome back, <span className="font-medium text-foreground">{data.name}</span>
+                Olá, <span className="font-medium text-foreground">{profile.name}</span>
               </div>
               <div className="hidden items-center gap-2 text-xs sm:flex">
                 <span className="rounded-full bg-running-soft px-2.5 py-1 font-medium text-running">
-                  Running
+                  Corrida
                 </span>
                 <span className="rounded-full bg-strength-soft px-2.5 py-1 font-medium text-strength">
-                  Strength
+                  Musculação
                 </span>
                 <span className="rounded-full bg-energy-soft px-2.5 py-1 font-medium text-energy">
-                  Goal: {data.goal.replace("_", " ")}
+                  Objetivo: {OBJ_LABEL[profile.objetivo_principal ?? ""] ?? "—"}
                 </span>
               </div>
             </div>
