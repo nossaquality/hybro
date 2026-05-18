@@ -72,13 +72,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Stride · AI plans for runners who lift" },
+      { title: "HYBRO · Treino Híbrido com IA" },
       {
         name: "description",
         content:
           "Personalized running + home strength plans, generated and adjusted by an AI coach. Train smarter, not harder.",
       },
-      { property: "og:title", content: "Stride · AI plans for runners who lift" },
+      { property: "og:title", content: "HYBRO · Treino Híbrido com IA" },
       {
         property: "og:description",
         content:
@@ -86,6 +86,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "HYBRO · Treino Híbrido com IA" },
+      { name: "description", content: "Combine corrida e musculação em casa com planilhas personalizadas. Respostas e ajustes em tempo real com seu treinador inteligente Gemini AI." },
+      { property: "og:description", content: "Combine corrida e musculação em casa com planilhas personalizadas. Respostas e ajustes em tempo real com seu treinador inteligente Gemini AI." },
+      { name: "twitter:description", content: "Combine corrida e musculação em casa com planilhas personalizadas. Respostas e ajustes em tempo real com seu treinador inteligente Gemini AI." },
+      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/RhCtT5xznWN6jGqDWai8rFimvku1/social-images/social-1779122408269-WhatsApp_Image_2026-05-18_at_13.37.46.webp" },
+      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/RhCtT5xznWN6jGqDWai8rFimvku1/social-images/social-1779122408269-WhatsApp_Image_2026-05-18_at_13.37.46.webp" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
