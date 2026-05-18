@@ -325,9 +325,10 @@ function GeneratingScreen({ name }: { name: string }) {
 
 function Step({ label, delay }: { label: string; delay: number }) {
   const [done, setDone] = useState(false);
-  useState(() => {
-    setTimeout(() => setDone(true), delay);
-  });
+  useEffect(() => {
+    const t = setTimeout(() => setDone(true), delay);
+    return () => clearTimeout(t);
+  }, [delay]);
   return (
     <div className="flex items-center gap-2">
       <span
