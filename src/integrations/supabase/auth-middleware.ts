@@ -18,14 +18,14 @@ function decodeJwtPayload(token: string): Record<string, unknown> | null {
 export const requireSupabaseAuth = createMiddleware({ type: 'function' }).server(
   async ({ next }) => {
     const SUPABASE_URL = process.env.SUPABASE_URL
-    // Service role key bypasses RLS on the server — user identity is
-    // already verified via the JWT decode below.
-    const SUPABASE_SERVICE_ROLE_KEY =
-      process.env.SUPABASE_SERVICE_ROLE_KEY ??
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZtcG10ZXhrb3hwcmJzd2ZhcGpvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3OTExMjYxMSwiZXhwIjoyMDk0Njg4NjExfQ.GJRBy8MjkZaprMEQXTdgz3YiAJFQDLv_ROWDHTj4ENs'
+    const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASESERVICEROLEKEY
 
-    if (!SUPABASE_URL) {
-      throw new Error('Missing SUPABASE_URL environment variable.')
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+      const missing = [
+        ...(!SUPABASE_URL ? ['SUPABASE_URL'] : []),
+        ...(!SUPABASE_SERVICE_ROLE_KEY ? ['SUPABASESERVICEROLEKEY'] : []),
+      ]
+      throw new Error(`Missing environment variable(s): ${missing.join(', ')}`)
     }
 
     const request = getRequest()
@@ -45,7 +45,6 @@ export const requireSupabaseAuth = createMiddleware({ type: 'function' }).server
       throw new Error('Unauthorized: No token provided')
     }
 
-    // Decode JWT locally — no network round-trip needed
     const claims = decodeJwtPayload(token)
     if (!claims) {
       throw new Error('Unauthorized: Malformed token')
@@ -61,8 +60,7 @@ export const requireSupabaseAuth = createMiddleware({ type: 'function' }).server
       throw new Error('Unauthorized: No user ID in token')
     }
 
-    // Use service role key on the server so RLS is bypassed safely.
-    // The user is already authenticated via the JWT decode above.
+    // Service role key bypasses RLS safely — user already verified via JWT
     const supabase = createClient<Database>(
       SUPABASE_URL,
       SUPABASE_SERVICE_ROLE_KEY,
