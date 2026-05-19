@@ -16,6 +16,8 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppIndexRouteImport } from './routes/app.index'
 import { Route as AppStrengthRouteImport } from './routes/app.strength'
 import { Route as AppRunningRouteImport } from './routes/app.running'
+import { Route as AppProfileRouteImport } from './routes/app.profile'
+import { Route as AppMobilityRouteImport } from './routes/app.mobility'
 import { Route as AppCoachRouteImport } from './routes/app.coach'
 import { Route as AppCalendarRouteImport } from './routes/app.calendar'
 
@@ -54,6 +56,16 @@ const AppRunningRoute = AppRunningRouteImport.update({
   path: '/running',
   getParentRoute: () => AppRoute,
 } as any)
+const AppProfileRoute = AppProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMobilityRoute = AppMobilityRouteImport.update({
+  id: '/mobility',
+  path: '/mobility',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppCoachRoute = AppCoachRouteImport.update({
   id: '/coach',
   path: '/coach',
@@ -72,6 +84,8 @@ export interface FileRoutesByFullPath {
   '/onboarding': typeof OnboardingRoute
   '/app/calendar': typeof AppCalendarRoute
   '/app/coach': typeof AppCoachRoute
+  '/app/mobility': typeof AppMobilityRoute
+  '/app/profile': typeof AppProfileRoute
   '/app/running': typeof AppRunningRoute
   '/app/strength': typeof AppStrengthRoute
   '/app/': typeof AppIndexRoute
@@ -82,6 +96,8 @@ export interface FileRoutesByTo {
   '/onboarding': typeof OnboardingRoute
   '/app/calendar': typeof AppCalendarRoute
   '/app/coach': typeof AppCoachRoute
+  '/app/mobility': typeof AppMobilityRoute
+  '/app/profile': typeof AppProfileRoute
   '/app/running': typeof AppRunningRoute
   '/app/strength': typeof AppStrengthRoute
   '/app': typeof AppIndexRoute
@@ -94,6 +110,8 @@ export interface FileRoutesById {
   '/onboarding': typeof OnboardingRoute
   '/app/calendar': typeof AppCalendarRoute
   '/app/coach': typeof AppCoachRoute
+  '/app/mobility': typeof AppMobilityRoute
+  '/app/profile': typeof AppProfileRoute
   '/app/running': typeof AppRunningRoute
   '/app/strength': typeof AppStrengthRoute
   '/app/': typeof AppIndexRoute
@@ -107,6 +125,8 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/app/calendar'
     | '/app/coach'
+    | '/app/mobility'
+    | '/app/profile'
     | '/app/running'
     | '/app/strength'
     | '/app/'
@@ -117,6 +137,8 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/app/calendar'
     | '/app/coach'
+    | '/app/mobility'
+    | '/app/profile'
     | '/app/running'
     | '/app/strength'
     | '/app'
@@ -128,6 +150,8 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/app/calendar'
     | '/app/coach'
+    | '/app/mobility'
+    | '/app/profile'
     | '/app/running'
     | '/app/strength'
     | '/app/'
@@ -191,6 +215,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRunningRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/profile': {
+      id: '/app/profile'
+      path: '/profile'
+      fullPath: '/app/profile'
+      preLoaderRoute: typeof AppProfileRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/mobility': {
+      id: '/app/mobility'
+      path: '/mobility'
+      fullPath: '/app/mobility'
+      preLoaderRoute: typeof AppMobilityRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/coach': {
       id: '/app/coach'
       path: '/coach'
@@ -211,6 +249,8 @@ declare module '@tanstack/react-router' {
 interface AppRouteChildren {
   AppCalendarRoute: typeof AppCalendarRoute
   AppCoachRoute: typeof AppCoachRoute
+  AppMobilityRoute: typeof AppMobilityRoute
+  AppProfileRoute: typeof AppProfileRoute
   AppRunningRoute: typeof AppRunningRoute
   AppStrengthRoute: typeof AppStrengthRoute
   AppIndexRoute: typeof AppIndexRoute
@@ -219,6 +259,8 @@ interface AppRouteChildren {
 const AppRouteChildren: AppRouteChildren = {
   AppCalendarRoute: AppCalendarRoute,
   AppCoachRoute: AppCoachRoute,
+  AppMobilityRoute: AppMobilityRoute,
+  AppProfileRoute: AppProfileRoute,
   AppRunningRoute: AppRunningRoute,
   AppStrengthRoute: AppStrengthRoute,
   AppIndexRoute: AppIndexRoute,
