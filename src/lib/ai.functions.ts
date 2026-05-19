@@ -60,19 +60,28 @@ async function callGateway(messages: Array<{ role: string; content: string }>, j
   // Captura o prompt do sistema para enviar na instrução base do modelo
   const systemInstructionText = messages.find(m => m.role === "system")?.content;
 
+  // Monta o corpo da requisição isolando as configurações de forma que a API v1 entenda
+  const requestBody: any = {
+    contents,
+    generationConfig: {
+      temperature: 0.5,
+      ...(jsonMode ? { responseMimeType: "application/json" } : {})
+    }
+  };
+
+  // Na API v1 estável, a instrução do sistema entra nesta estrutura específica de objetos e partes
+  if (systemInstructionText) {
+    requestBody.systemInstruction = {
+      parts: [{ text: systemInstructionText }]
+    };
+  }
+
   const res = await fetch(GOOGLE_API_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      contents,
-      ...(systemInstructionText ? { systemInstruction: { parts: [{ text: systemInstructionText }] } } : {}),
-      generationConfig: {
-        ...(jsonMode ? { responseMimeType: "application/json" } : {}),
-        temperature: 0.5,
-      }
-    }),
+    body: JSON.stringify(requestBody),
   });
 
   if (!res.ok) {
