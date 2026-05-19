@@ -2,12 +2,10 @@ import { createRoot } from 'react-dom/client'
 import { RouterProvider, createRouter } from '@tanstack/react-router'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { routeTree } from './routeTree.gen'
-import './index.css'
+import '../index.css' // Mudamos de './index.css' para '../index.css' para subir um nível e achar o arquivo
 
-// 1. Criamos a instância do QueryClient que o roteador exige
 const queryClient = new QueryClient()
 
-// 2. Passamos o queryClient dentro do objeto context
 const router = createRouter({ 
   routeTree,
   context: {
