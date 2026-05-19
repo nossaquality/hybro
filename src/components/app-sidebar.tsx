@@ -34,7 +34,7 @@ export function AppSidebar() {
             <Activity className="h-5 w-5" />
           </div>
           <div className="flex flex-col leading-tight">
-            <span className="text-base font-semibold tracking-tight">Stride</span>
+            <span className="text-base font-semibold tracking-tight">HYBRO</span>
             <span className="text-xs text-muted-foreground">Corrida + Força</span>
           </div>
         </div>
