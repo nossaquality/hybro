@@ -4,7 +4,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { PlanoTreino } from "./plan-types";
 
 // Apontando direto para a API oficial do Google Gemini
-const MODEL = "gemini-1.5-pro"; 
+const MODEL = "gemini-1.5-pro-latest"; 
 
 const SYSTEM_PROMPT_PLANO = `Você é um treinador de corrida e força para atletas amadores que treinam em casa.
 Gere um plano semanal personalizado em português brasileiro, equilibrando corrida (aquecimento, treino principal, desaquecimento)
