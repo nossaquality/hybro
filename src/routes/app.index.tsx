@@ -153,7 +153,7 @@ function Today() {
                     )}
                     {status?.esforco && (
                       <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
-                        Esforço: {status.esforco}
+                        Esforço: {ESFORCO_LABEL[status.esforco as Esforco] ?? status.esforco}
                       </span>
                     )}
                   </div>
