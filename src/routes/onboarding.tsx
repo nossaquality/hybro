@@ -127,7 +127,7 @@ function Onboarding() {
           <div className="grid h-9 w-9 place-items-center rounded-xl bg-primary text-primary-foreground">
             <Activity className="h-5 w-5" />
           </div>
-          <span className="text-lg font-semibold tracking-tight">Stride</span>
+          <span className="text-lg font-semibold tracking-tight">HYBRO</span>
         </div>
 
         <div className="mb-8 flex items-center gap-2">
