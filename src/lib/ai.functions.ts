@@ -49,27 +49,36 @@ async function callGateway(messages: Array<{ role: string; content: string }>, j
 
   const GOOGLE_API_URL = `https://generativelanguage.googleapis.com/v1/models/${MODEL}:generateContent?key=${apiKey}`;
 
+  // Se precisar de JSON, injetamos a ordem direto na mensagem para o Google não reclamar da configuração
+  let formattedMessages = [...messages];
+  if (jsonMode) {
+    formattedMessages = messages.map(m => {
+      if (m.role === "system" || m.role === "user") {
+        return { ...m, content: m.content + "\nIMPORTANT: Return ONLY a valid JSON object. Do not include any markdown formatting like ```json or text before/after." };
+      }
+      return m;
+    });
+  }
+
   // Formata o histórico para o padrão aceito pela API da Google
-  const contents = messages
+  const contents = formattedMessages
     .filter(m => m.role !== "system")
     .map(m => ({
       role: m.role === "assistant" ? "model" : "user",
       parts: [{ text: m.content }]
     }));
 
-  // Captura o prompt do sistema para enviar na instrução base do modelo
-  const systemInstructionText = messages.find(m => m.role === "system")?.content;
+  // Captura o prompt do sistema
+  const systemInstructionText = formattedMessages.find(m => m.role === "system")?.content;
 
-  // Monta o corpo da requisição isolando as configurações de forma que a API v1 entenda
+  // Montamos o corpo ultra limpo, sem os campos que o Google rejeitou
   const requestBody: any = {
     contents,
     generationConfig: {
-      temperature: 0.5,
-      ...(jsonMode ? { responseMimeType: "application/json" } : {})
+      temperature: 0.2
     }
   };
 
-  // Na API v1 estável, a instrução do sistema entra nesta estrutura específica de objetos e partes
   if (systemInstructionText) {
     requestBody.systemInstruction = {
       parts: [{ text: systemInstructionText }]
@@ -90,7 +99,14 @@ async function callGateway(messages: Array<{ role: string; content: string }>, j
   }
 
   const data = await res.json();
-  return data.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+  let textResult = data.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+
+  // Se o modelo teimosamente colocar crases de markdown (```json), a gente limpa na marra
+  if (jsonMode) {
+    textResult = textResult.replace(/```json\s?|```/g, "").trim();
+  }
+
+  return textResult;
 }
 
 export const gerarPlano = createServerFn({ method: "POST" })
