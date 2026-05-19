@@ -10,7 +10,7 @@ import { toast } from "sonner";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
-  head: () => ({ meta: [{ title: "Entrar · Stride" }] }),
+  head: () => ({ meta: [{ title: "Entrar · HYBRO" }] }),
 });
 
 function LoginPage() {
