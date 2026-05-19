@@ -15,10 +15,10 @@ import { Activity, CalendarDays, Footprints, Dumbbell, Sparkles, Home, LogOut } 
 import { supabase } from "@/integrations/supabase/client";
 
 const items = [
-  { title: "Início / Hoje", url: "/app", icon: Home },
+  { title: "Início/Hoje", url: "/app", icon: Home },
   { title: "Calendário Semanal", url: "/app/calendar", icon: CalendarDays },
-  { title: "Planilha · Corrida", url: "/app/running", icon: Footprints },
-  { title: "Planilha · Musculação", url: "/app/strength", icon: Dumbbell },
+  { title: "Planilhas · Corrida", url: "/app/running", icon: Footprints },
+  { title: "Planilhas · Musculação", url: "/app/strength", icon: Dumbbell },
   { title: "Chat com Treinador IA", url: "/app/coach", icon: Sparkles },
 ];
 
@@ -34,7 +34,7 @@ export function AppSidebar() {
             <Activity className="h-5 w-5" />
           </div>
           <div className="flex flex-col leading-tight">
-            <span className="text-base font-semibold tracking-tight">Stride</span>
+            <span className="text-base font-semibold tracking-tight">HYBRO</span>
             <span className="text-xs text-muted-foreground">Corrida + Força</span>
           </div>
         </div>

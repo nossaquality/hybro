@@ -34,6 +34,7 @@ const TONES: Record<TipoTarefa, { chip: string; iconBg: string; label: string }>
 };
 
 const ESFORCOS: Esforco[] = ["Facil", "Medio", "Dificil"];
+const ESFORCO_LABEL: Record<Esforco, string> = { Facil: "Fácil", Medio: "Médio", Dificil: "Difícil" };
 
 function Today() {
   const [plano, setPlano] = useState<PlanoTreino | null>(null);
@@ -152,7 +153,7 @@ function Today() {
                     )}
                     {status?.esforco && (
                       <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
-                        Esforço: {status.esforco}
+                        Esforço: {ESFORCO_LABEL[status.esforco as Esforco] ?? status.esforco}
                       </span>
                     )}
                   </div>
@@ -195,7 +196,7 @@ function Today() {
                 onClick={() => pickEsforco(e)}
                 className="rounded-xl border border-border p-4 text-sm font-medium transition-all hover:border-primary hover:bg-primary/5"
               >
-                {e}
+                {ESFORCO_LABEL[e]}
               </button>
             ))}
           </div>
