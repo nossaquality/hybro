@@ -196,7 +196,7 @@ function Today() {
                 onClick={() => pickEsforco(e)}
                 className="rounded-xl border border-border p-4 text-sm font-medium transition-all hover:border-primary hover:bg-primary/5"
               >
-                {e}
+                {ESFORCO_LABEL[e]}
               </button>
             ))}
           </div>
