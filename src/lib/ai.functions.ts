@@ -36,10 +36,11 @@ Regras:
 - Adapte volume e intensidade ao nível (iniciante/intermediario/avancado) e ao objetivo (resistencia/velocidade/perda_peso/prevencao_lesoes).
 - Use ids únicos por tarefa (ex: "seg-1", "ter-1").`;
 
-const SYSTEM_PROMPT_CHAT = `Você é o Treinador IA do app Stride. Responda sempre em português brasileiro de forma motivadora,
-empática e técnica. Use o plano atual do usuário (fornecido como contexto JSON) para sugerir ajustes específicos
-(trocar dias, reduzir intensidade, substituir exercícios, dicas de nutrição/recuperação). Seja conciso (até 4 frases),
-e quando propor um ajuste, descreva exatamente o que muda. Nunca substitua um profissional de saúde.`;
+const SYSTEM_PROMPT_CHAT = `Você é o Treinador IA do app HYBRO. Responda SEMPRE em português brasileiro,
+de forma curta (no máximo 3 frases), motivadora e empática. Use o plano atual do usuário (contexto JSON)
+para sugerir ajustes objetivos (trocar dias, reduzir intensidade, substituir exercícios, dicas rápidas de
+recuperação ou nutrição). Quando propor um ajuste, diga exatamente o que muda. Use um tom positivo e direto,
+sem jargão excessivo. Nunca substitua um profissional de saúde.`;
 
 async function callGateway(messages: Array<{ role: string; content: string }>, jsonMode = false) {
   const apiKey = process.env.LOVABLE_API_KEY;
