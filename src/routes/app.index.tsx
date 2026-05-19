@@ -34,6 +34,7 @@ const TONES: Record<TipoTarefa, { chip: string; iconBg: string; label: string }>
 };
 
 const ESFORCOS: Esforco[] = ["Facil", "Medio", "Dificil"];
+const ESFORCO_LABEL: Record<Esforco, string> = { Facil: "Fácil", Medio: "Médio", Dificil: "Difícil" };
 
 function Today() {
   const [plano, setPlano] = useState<PlanoTreino | null>(null);
