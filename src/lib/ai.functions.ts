@@ -49,41 +49,50 @@ async function callGateway(messages: Array<{ role: string; content: string }>, j
 
   const GOOGLE_API_URL = `https://generativelanguage.googleapis.com/v1/models/${MODEL}:generateContent?key=${apiKey}`;
 
-  // Se precisar de JSON, injetamos a ordem direto na mensagem para o Google não reclamar da configuração
-  let formattedMessages = [...messages];
-  if (jsonMode) {
-    formattedMessages = messages.map(m => {
-      if (m.role === "system" || m.role === "user") {
-        return { ...m, content: m.content + "\nIMPORTANT: Return ONLY a valid JSON object. Do not include any markdown formatting like ```json or text before/after." };
-      }
-      return m;
+  // 1. Pegamos a instrução do sistema (se houver)
+  const systemMessage = messages.find(m => m.role === "system");
+  
+  // 2. Filtramos apenas as mensagens normais do chat
+  const chatMessages = messages.filter(m => m.role !== "system");
+
+  // 3. Montamos o conteúdo mesclando o prompt de sistema no início do chat para evitar erros de campos da API
+  const contents = [];
+  
+  if (systemMessage) {
+    contents.push({
+      role: "user",
+      parts: [{ text: `[SYSTEM INSTRUCTION - ACT AS FOLLOWS]:\n${systemMessage.content}` }]
+    });
+    // Adiciona uma resposta fantasma do modelo para o chat continuar fluido
+    contents.push({
+      role: "model",
+      parts: [{ text: "Understood. I will follow these instructions strictly." }]
     });
   }
 
-  // Formata o histórico para o padrão aceito pela API da Google
-  const contents = formattedMessages
-    .filter(m => m.role !== "system")
-    .map(m => ({
+  // 4. Injeta as mensagens reais do usuário e do assistente
+  chatMessages.forEach(m => {
+    contents.push({
       role: m.role === "assistant" ? "model" : "user",
       parts: [{ text: m.content }]
-    }));
+    });
+  });
 
-  // Captura o prompt do sistema
-  const systemInstructionText = formattedMessages.find(m => m.role === "system")?.content;
+  // 5. Se jsonMode estiver ativo, injetamos a regra direto no último bloco de texto
+  if (jsonMode && contents.length > 0) {
+    const lastIndex = contents.length - 1;
+    if (contents[lastIndex].role === "user") {
+      contents[lastIndex].parts[0].text += "\n\nIMPORTANT: Return ONLY a valid JSON object. Do not include markdown blocks like ```json.";
+    }
+  }
 
-  // Montamos o corpo ultra limpo, sem os campos que o Google rejeitou
-  const requestBody: any = {
+  // O corpo da requisição agora é o mais simples e seguro possível para a API v1
+  const requestBody = {
     contents,
     generationConfig: {
       temperature: 0.2
     }
   };
-
-  if (systemInstructionText) {
-    requestBody.systemInstruction = {
-      parts: [{ text: systemInstructionText }]
-    };
-  }
 
   const res = await fetch(GOOGLE_API_URL, {
     method: "POST",
@@ -101,7 +110,7 @@ async function callGateway(messages: Array<{ role: string; content: string }>, j
   const data = await res.json();
   let textResult = data.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
 
-  // Se o modelo teimosamente colocar crases de markdown (```json), a gente limpa na marra
+  // Garante a limpeza de qualquer crase de markdown que a IA coloque
   if (jsonMode) {
     textResult = textResult.replace(/```json\s?|```/g, "").trim();
   }
