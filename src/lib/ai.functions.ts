@@ -3,8 +3,8 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { PlanoTreino } from "./plan-types";
 
-const GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
-const MODEL = "google/gemini-2.5-flash";
+// Apontando direto para a API oficial do Google Gemini
+const MODEL = "gemini-1.5-pro"; 
 
 const SYSTEM_PROMPT_PLANO = `Você é um treinador de corrida e força para atletas amadores que treinam em casa.
 Gere um plano semanal personalizado em português brasileiro, equilibrando corrida (aquecimento, treino principal, desaquecimento)
@@ -37,36 +37,51 @@ Regras:
 - Use ids únicos por tarefa (ex: "seg-1", "ter-1").`;
 
 const SYSTEM_PROMPT_CHAT = `Você é o Treinador IA do app HYBRO. Responda SEMPRE em português brasileiro,
-de forma curta (no máximo 3 frases), motivadora e empática. Use o plano atual do usuário (contexto JSON)
+de forma corta (no máximo 3 frases), motivadora e empática. Use o plano atual do usuário (contexto JSON)
 para sugerir ajustes objetivos (trocar dias, reduzir intensidade, substituir exercícios, dicas rápidas de
 recuperação ou nutrição). Quando propor um ajuste, diga exatamente o que muda. Use um tom positivo e direto,
 sem jargão excessivo. Nunca substitua um profissional de saúde.`;
 
 async function callGateway(messages: Array<{ role: string; content: string }>, jsonMode = false) {
-  const apiKey = process.env.LOVABLE_API_KEY;
-  if (!apiKey) throw new Error("LOVABLE_API_KEY não configurada");
+  // Tenta ler do ambiente ou usa a sua chave válida como padrão definitivo
+  const apiKey = process.env.GEMINI_API_KEY || "AIzaSyCEwYtZuCdyE4zlQ8Xob0a0STOAPvPIb8o";
+  if (!apiKey) throw new Error("GEMINI_API_KEY não configurada");
 
-  const res = await fetch(GATEWAY_URL, {
+  const GOOGLE_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${apiKey}`;
+
+  // Formata o histórico para o padrão aceito pela API da Google
+  const contents = messages
+    .filter(m => m.role !== "system")
+    .map(m => ({
+      role: m.role === "assistant" ? "model" : "user",
+      parts: [{ text: m.content }]
+    }));
+
+  // Captura o prompt do sistema para enviar na instrução base do modelo
+  const systemInstructionText = messages.find(m => m.role === "system")?.content;
+
+  const res = await fetch(GOOGLE_API_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: MODEL,
-      messages,
-      ...(jsonMode ? { response_format: { type: "json_object" } } : {}),
+      contents,
+      ...(systemInstructionText ? { systemInstruction: { parts: [{ text: systemInstructionText }] } } : {}),
+      generationConfig: {
+        ...(jsonMode ? { responseMimeType: "application/json" } : {}),
+        temperature: 0.5,
+      }
     }),
   });
 
-  if (res.status === 429) throw new Error("Limite de requisições atingido. Tente novamente em instantes.");
-  if (res.status === 402) throw new Error("Créditos de IA esgotados no workspace.");
   if (!res.ok) {
     const text = await res.text();
     throw new Error(`Falha na IA (${res.status}): ${text.slice(0, 200)}`);
   }
-  const data = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
-  return data.choices?.[0]?.message?.content ?? "";
+
+  const data = await res.json();
+  return data.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
 }
 
 export const gerarPlano = createServerFn({ method: "POST" })
@@ -176,7 +191,7 @@ export const chatCoach = createServerFn({ method: "POST" })
 
     const messages = [
       { role: "system", content: `${SYSTEM_PROMPT_CHAT}\n\n${planoContext}` },
-      ...(history ?? []).map((m) => ({ role: m.role, content: m.content })),
+      ...((history ?? []).map((m) => ({ role: m.role, content: m.content }))),
     ];
 
     const reply = await callGateway(messages);
