@@ -58,7 +58,7 @@ function LoginPage() {
           <div className="grid h-10 w-10 place-items-center rounded-xl bg-primary text-primary-foreground">
             <Activity className="h-5 w-5" />
           </div>
-          <span className="text-xl font-semibold tracking-tight">Stride</span>
+          <span className="text-xl font-semibold tracking-tight">HYBRO</span>
         </div>
 
         <Card className="rounded-2xl border-border/60 p-6 shadow-sm sm:p-8">
