@@ -25,7 +25,7 @@ export const Route = createFileRoute("/onboarding")({
   component: Onboarding,
   head: () => ({
     meta: [
-      { title: "Começar · Stride" },
+      { title: "Começar · HYBRO" },
       { name: "description", content: "Monte seu plano personalizado de corrida e musculação em casa." },
     ],
   }),
