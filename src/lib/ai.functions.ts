@@ -47,7 +47,7 @@ async function callGateway(messages: Array<{ role: string; content: string }>, j
   const apiKey = process.env.GEMINI_API_KEY || "AIzaSyCEwYtZuCdyE4zlQ8Xob0a0STOAPvPIb8o";
   if (!apiKey) throw new Error("GEMINI_API_KEY não configurada");
 
-  const GOOGLE_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${apiKey}`;
+  const GOOGLE_API_URL = `https://generativelanguage.googleapis.com/v1/models/${MODEL}:generateContent?key=${apiKey}`;
 
   // Formata o histórico para o padrão aceito pela API da Google
   const contents = messages
