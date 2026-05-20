@@ -1,7 +1,6 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Eye, EyeOff, Sparkles, Calendar, Target, Dumbbell } from "lucide-react";
@@ -89,54 +88,46 @@ function LoginPage() {
   return (
     <div className="flex min-h-screen flex-col justify-between bg-[#040405] text-zinc-200 font-sans selection:bg-amber-500/30 antialiased relative overflow-hidden px-6 py-8">
       
-      {/* COMPONENTE DOS ANÉIS GEOMÉTRICOS DE LUZ (Corrigido e fechado corretamente) */}
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none z-0">
-        <div className="relative w-full max-w-md h-[450px] flex items-center justify-center">
-          
-          {/* Anel Dourado (Esquerda) */}
-          <div 
-            className="absolute left-[-15%] w-[380px] h-[380px] rounded-full border border-amber-500/30 opacity-70"
-            style={{
-              boxShadow: "0 0 30px rgba(245, 158, 11, 0.15), inset 0 0 30px rgba(245, 158, 11, 0.15)"
-            }}
-          />
-          {/* Brilho de fundo sutil âmbar */}
-          <div className="absolute left-[-20%] w-[320px] h-[320px] rounded-full bg-amber-500/10 blur-[80px]" />
-
-          {/* Anel Azul Cyber (Direita) */}
-          <div 
-            className="absolute right-[-15%] w-[380px] h-[380px] rounded-full border border-blue-500/30 opacity-70"
-            style={{
-              boxShadow: "0 0 35px rgba(59, 130, 246, 0.18), inset 0 0 35px rgba(59, 130, 246, 0.18)"
-            }}
-          />
-          {/* Brilho de fundo sutil azul */}
-          <div className="absolute right-[-20%] w-[320px] h-[320px] rounded-full bg-blue-600/10 blur-[80px]" />
-          
+      {/* OTIMIZAÇÃO: Animação simplificada para evitar gargalo de GPU */}
+      <style>{`
+        @keyframes ambient-float {
+          0% { transform: translate(0px, 0px); }
+          50% { transform: translate(20px, -15px); }
+          100% { transform: translate(0px, 0px); }
+        }
+        .animate-ambient-left { animation: ambient-float 12s infinite ease-in-out; }
+        .animate-ambient-right { animation: ambient-float 14s infinite ease-in-out reverse; }
+      `}</style>
+      
+      {/* ANÉIS DE LUZ */}
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none z-0 overflow-hidden">
+        <div className="relative w-full max-w-xl h-[650px] flex items-center justify-center">
+          <div className="absolute left-[-10%] w-[400px] h-[400px] flex items-center justify-center animate-ambient-left">
+            <div className="absolute w-full h-full rounded-full border border-amber-500/20" />
+            <div className="absolute w-[80%] h-[80%] rounded-full bg-amber-500/[0.08] blur-[80px]" />
+          </div>
+          <div className="absolute right-[-10%] w-[400px] h-[400px] flex items-center justify-center animate-ambient-right">
+            <div className="absolute w-full h-full rounded-full border border-blue-500/20" />
+            <div className="absolute w-[80%] h-[80%] rounded-full bg-blue-600/[0.08] blur-[80px]" />
+          </div>
         </div>
       </div>
 
-      {/* 1. CABEÇALHO PREMIUM */}
+      {/* CABEÇALHO */}
       <div className="relative z-10 w-full text-center pt-4">
-        <h1 className="text-3xl font-black tracking-[0.15em] text-white uppercase pl-[0.35em] sm:text-5xl">
-          HYBRO
-        </h1>
-        <p className="mt-2 text-xs tracking-widest text-amber-200/60 font-medium">
-          inteligência em treinamento híbrido
-        </p>
+        <h1 className="text-3xl font-black tracking-[0.15em] text-white uppercase pl-[0.35em] sm:text-5xl">HYBRO</h1>
+        <p className="mt-2 text-xs tracking-widest text-amber-200/60 font-medium">inteligência em treinamento híbrido</p>
       </div>
 
-      {/* 2. CARD VIDRO FOSCO DE ALTA FIDELIDADE */}
+      {/* CARD OTIMIZADO (backdrop-blur-md leve) */}
       <div className="relative z-10 w-full max-w-[420px] mx-auto my-auto py-6">
-        <Card className="rounded-[28px] border border-white/[0.07] bg-zinc-950/25 p-6 sm:p-10 backdrop-blur-3xl shadow-2xl shadow-black/95 text-zinc-100">
+        <Card className="rounded-[28px] border border-white/[0.07] bg-zinc-950/60 p-6 sm:p-10 backdrop-blur-md shadow-2xl shadow-black/95 text-zinc-100">
           <div className="text-center mb-6">
             <h2 className="text-xl font-bold tracking-tight text-white">
               {mode === "signin" ? "Hey Bro 👋" : "Criar sua Conta ✨"}
             </h2>
             <p className="mt-1 text-xs text-zinc-400">
-              {mode === "signin" 
-                ? "Acesse seu plano de corrida + musculação híbrida." 
-                : "Monte seu cronograma personalizado inteligente."}
+              {mode === "signin" ? "Acesse seu plano de corrida + musculação híbrida." : "Monte seu cronograma personalizado inteligente."}
             </p>
           </div>
 
@@ -153,51 +144,45 @@ function LoginPage() {
             </button>
           </div>
 
-          {/* Divisor */}
           <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-white/[0.06]" />
-            </div>
-            <div className="relative flex justify-center text-[10px] font-mono tracking-[0.2em] text-zinc-600">
-              <span className="bg-transparent px-3 uppercase">ou e-mail</span>
-            </div>
+            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-white/[0.06]" /></div>
+            <div className="relative flex justify-center text-[10px] font-mono tracking-[0.2em] text-zinc-600"><span className="bg-transparent px-3 uppercase">ou e-mail</span></div>
           </div>
 
-          {/* Formulário */}
+          {/* FORMULÁRIO LEVE */}
           <form onSubmit={submit} className="space-y-4">
             {mode === "signup" && (
               <div className="space-y-1">
                 <Label htmlFor="name" className="text-zinc-400 text-[11px] font-medium pl-0.5">Nome</Label>
-                <Input 
+                <input 
                   id="name" 
+                  type="text"
                   placeholder="Seu nome"
                   value={name} 
                   onChange={(e) => setName(e.target.value)} 
                   required 
-                  className="w-full h-11 px-4 border border-white/[0.07] bg-black/40 text-sm text-white focus-visible:ring-amber-500/30 placeholder:text-zinc-800 rounded-xl transition-all"
+                  className="flex w-full h-11 px-4 border border-white/[0.07] bg-black/60 text-sm text-white focus:outline-none focus:border-amber-500/40 rounded-xl transition-all placeholder:text-zinc-700"
                 />
               </div>
             )}
             
             <div className="space-y-1">
               <Label htmlFor="email" className="text-zinc-400 text-[11px] font-medium pl-0.5">E-mail</Label>
-              <Input
+              <input
                 id="email"
                 type="email"
                 placeholder="exemplo@email.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full h-11 px-4 border border-white/[0.07] bg-black/40 text-sm text-white focus-visible:ring-amber-500/30 placeholder:text-zinc-800 rounded-xl transition-all"
+                className="flex w-full h-11 px-4 border border-white/[0.07] bg-black/60 text-sm text-white focus:outline-none focus:border-amber-500/40 rounded-xl transition-all placeholder:text-zinc-700"
               />
             </div>
             
             <div className="space-y-1">
-              <Label htmlFor="password">
-                <span className="text-zinc-400 text-[11px] font-medium pl-0.5">Senha</span>
-              </Label>
+              <Label htmlFor="password"><span className="text-zinc-400 text-[11px] font-medium pl-0.5">Senha</span></Label>
               <div className="relative">
-                <Input
+                <input
                   id="password"
                   type={showPassword ? "text" : "password"}
                   placeholder="••••••••"
@@ -205,7 +190,7 @@ function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   minLength={6}
-                  className="w-full h-11 pl-4 pr-10 border border-white/[0.07] bg-black/40 text-sm text-white focus-visible:ring-amber-500/30 placeholder:text-zinc-800 rounded-xl transition-all"
+                  className="flex w-full h-11 pl-4 pr-10 border border-white/[0.07] bg-black/60 text-sm text-white focus:outline-none focus:border-amber-500/40 rounded-xl transition-all placeholder:text-zinc-700"
                 />
                 <button
                   type="button"
@@ -222,16 +207,7 @@ function LoginPage() {
               disabled={loading} 
               className="w-full h-11 rounded-xl bg-zinc-100 text-black hover:bg-zinc-200 font-bold text-xs tracking-wide transition-all cursor-pointer border-none mt-3 shadow-lg shadow-black/20"
             >
-              {loading ? (
-                "Carregando..."
-              ) : mode === "signin" ? (
-                "Entrar na conta"
-              ) : (
-                <>
-                  <Sparkles className="mr-1.5 h-3.5 w-3.5 fill-black" />
-                  Criar minha conta de treino
-                </>
-              )}
+              {loading ? "Carregando..." : mode === "signin" ? "Entrar na conta" : <><Sparkles className="mr-1.5 h-3.5 w-3.5 fill-black" /> Criar minha conta de treino</>}
             </Button>
           </form>
 
@@ -255,9 +231,8 @@ function LoginPage() {
         </p>
       </div>
 
-      {/* 3. RODAPÉ */}
+      {/* RODAPÉ */}
       <div className="relative z-10 w-full max-w-4xl mx-auto border-t border-white/[0.04] pt-5 mt-2 flex flex-col sm:flex-row items-center justify-between gap-4">
-        
         <div className="flex flex-wrap items-center justify-center gap-4 text-zinc-500 text-[10px] font-medium tracking-wide">
           <div className="flex items-center gap-2 bg-white/[0.01] border border-white/[0.03] px-3 py-1.5 rounded-xl">
             <Calendar className="h-3.5 w-3.5 text-amber-200/30" />
@@ -272,10 +247,7 @@ function LoginPage() {
             <span>Musculação em casa</span>
           </div>
         </div>
-
-        <div className="hidden sm:block">
-          <FourPointStar />
-        </div>
+        <div className="hidden sm:block"><FourPointStar /></div>
       </div>
 
     </div>

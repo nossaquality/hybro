@@ -14,18 +14,21 @@ export default defineConfig({
   server: {
     host: "0.0.0.0",
     port: 5173,
-  },
-  // ISSO AQUI VAI FORÇAR O VITE A RESOLVER O FORMATO DO LOVABLE CORRETAMENTE:
-  ssr: {
-    noExternal: ["lovable-tagger", "@lovable.dev/vite-tanstack-config"],
+    hmr: {
+      clientPort: 443,
+      protocol: "wss",
+    },
+    allowedHosts: true,
   },
   optimizeDeps: {
     exclude: [
-      "@tanstack/start",
+      "@tanstack/react-start",
       "@tanstack/start-server-core",
-      "#tanstack-router-entry",
-      "#tanstack-start-entry",
-      "#tanstack-start-plugin-adapters"
-    ]
-  }
+    ],
+  },
+  resolve: {
+    alias: {
+      "@tanstack/start-server-core": "/dev/null",
+    },
+  },
 });
