@@ -4,13 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Activity, Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Sparkles, Calendar, Target, Dumbbell } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
-  head: () => ({ meta: [{ title: "Entrar · Stride" }] }),
+  head: () => ({ meta: [{ title: "Entrar · HYBRO" }] }),
 });
 
 function GoogleIcon() {
@@ -24,10 +24,10 @@ function GoogleIcon() {
   );
 }
 
-function AppleIcon() {
+function FourPointStar() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-      <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z" />
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-zinc-700 opacity-80 animate-pulse">
+      <path d="M12 0L15 9L24 12L15 15L12 24L9 15L0 12L9 9L12 0Z" fill="currentColor" />
     </svg>
   );
 }
@@ -40,7 +40,7 @@ function LoginPage() {
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [oauthLoading, setOauthLoading] = useState<"google" | "apple" | null>(null);
+  const [oauthLoading, setOauthLoading] = useState<"google" | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -72,7 +72,7 @@ function LoginPage() {
     }
   }
 
-  async function handleOAuth(provider: "google" | "apple") {
+  async function handleOAuth(provider: "google") {
     setOauthLoading(provider);
     try {
       const { error } = await supabase.auth.signInWithOAuth({
@@ -87,119 +87,197 @@ function LoginPage() {
   }
 
   return (
-    <div className="grid min-h-screen place-items-center bg-background px-6">
-      <div className="w-full max-w-md">
-        {/* Logo */}
-        <div className="mb-6 flex items-center justify-center gap-2">
-          <div className="grid h-10 w-10 place-items-center rounded-xl bg-primary text-primary-foreground">
-            <Activity className="h-5 w-5" />
-          </div>
-          <span className="text-xl font-semibold tracking-tight">Stride</span>
+    <div className="flex min-h-screen flex-col justify-between bg-[#040405] text-zinc-200 font-sans selection:bg-amber-500/30 antialiased relative overflow-hidden px-6 py-8">
+      
+      {/* COMPONENTE DOS ANÉIS GEOMÉTRICOS DE LUZ (Corrigido e fechado corretamente) */}
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none z-0">
+        <div className="relative w-full max-w-md h-[450px] flex items-center justify-center">
+          
+          {/* Anel Dourado (Esquerda) */}
+          <div 
+            className="absolute left-[-15%] w-[380px] h-[380px] rounded-full border border-amber-500/30 opacity-70"
+            style={{
+              boxShadow: "0 0 30px rgba(245, 158, 11, 0.15), inset 0 0 30px rgba(245, 158, 11, 0.15)"
+            }}
+          />
+          {/* Brilho de fundo sutil âmbar */}
+          <div className="absolute left-[-20%] w-[320px] h-[320px] rounded-full bg-amber-500/10 blur-[80px]" />
+
+          {/* Anel Azul Cyber (Direita) */}
+          <div 
+            className="absolute right-[-15%] w-[380px] h-[380px] rounded-full border border-blue-500/30 opacity-70"
+            style={{
+              boxShadow: "0 0 35px rgba(59, 130, 246, 0.18), inset 0 0 35px rgba(59, 130, 246, 0.18)"
+            }}
+          />
+          {/* Brilho de fundo sutil azul */}
+          <div className="absolute right-[-20%] w-[320px] h-[320px] rounded-full bg-blue-600/10 blur-[80px]" />
+          
         </div>
+      </div>
 
-        <Card className="rounded-3xl border-border/60 p-6 shadow-sm sm:p-8">
-          <h1 className="text-2xl font-semibold tracking-tight">
-            {mode === "signin" ? "Entrar na sua conta" : "Criar uma conta"}
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {mode === "signin"
-              ? "Acesse seu plano personalizado de corrida e força."
-              : "Comece a treinar com IA em menos de 1 minuto."}
-          </p>
+      {/* 1. CABEÇALHO PREMIUM */}
+      <div className="relative z-10 w-full text-center pt-4">
+        <h1 className="text-3xl font-black tracking-[0.15em] text-white uppercase pl-[0.35em] sm:text-5xl">
+          HYBRO
+        </h1>
+        <p className="mt-2 text-xs tracking-widest text-amber-200/60 font-medium">
+          inteligência em treinamento híbrido
+        </p>
+      </div>
 
-          {/* Social Login Buttons */}
-          <div className="mt-5 space-y-2.5">
+      {/* 2. CARD VIDRO FOSCO DE ALTA FIDELIDADE */}
+      <div className="relative z-10 w-full max-w-[420px] mx-auto my-auto py-6">
+        <Card className="rounded-[28px] border border-white/[0.07] bg-zinc-950/25 p-6 sm:p-10 backdrop-blur-3xl shadow-2xl shadow-black/95 text-zinc-100">
+          <div className="text-center mb-6">
+            <h2 className="text-xl font-bold tracking-tight text-white">
+              {mode === "signin" ? "Hey Bro 👋" : "Criar sua Conta ✨"}
+            </h2>
+            <p className="mt-1 text-xs text-zinc-400">
+              {mode === "signin" 
+                ? "Acesse seu plano de corrida + musculação híbrida." 
+                : "Monte seu cronograma personalizado inteligente."}
+            </p>
+          </div>
+
+          {/* Botão Google */}
+          <div className="mt-2">
             <button
+              type="button"
               onClick={() => handleOAuth("google")}
               disabled={!!oauthLoading}
-              className="flex w-full items-center justify-center gap-3 rounded-xl border border-border bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition-all hover:bg-gray-50 disabled:opacity-60 dark:bg-card dark:text-foreground dark:hover:bg-muted"
+              className="flex w-full h-11 items-center justify-center gap-2.5 rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 text-xs font-semibold text-zinc-300 transition-all hover:bg-white/[0.07] hover:border-white/[0.15] disabled:opacity-50 cursor-pointer"
             >
               <GoogleIcon />
-              {oauthLoading === "google" ? "Redirecionando…" : "Continuar com Google"}
-            </button>
-            <button
-              onClick={() => handleOAuth("apple")}
-              disabled={!!oauthLoading}
-              className="flex w-full items-center justify-center gap-3 rounded-xl border border-gray-900 bg-gray-900 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-gray-800 disabled:opacity-60"
-            >
-              <AppleIcon />
-              {oauthLoading === "apple" ? "Redirecionando…" : "Continuar com Apple"}
+              {oauthLoading === "google" ? "Conectando..." : "Continuar com Google"}
             </button>
           </div>
 
-          {/* Divider */}
-          <div className="relative my-5">
+          {/* Divisor */}
+          <div className="relative my-6">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-border/60" />
+              <div className="w-full border-t border-white/[0.06]" />
             </div>
-            <div className="relative flex justify-center text-xs">
-              <span className="bg-card px-3 text-muted-foreground">ou use seu e-mail</span>
+            <div className="relative flex justify-center text-[10px] font-mono tracking-[0.2em] text-zinc-600">
+              <span className="bg-transparent px-3 uppercase">ou e-mail</span>
             </div>
           </div>
 
-          {/* Email/Password Form */}
+          {/* Formulário */}
           <form onSubmit={submit} className="space-y-4">
             {mode === "signup" && (
-              <div className="space-y-1.5">
-                <Label htmlFor="name">Nome</Label>
-                <Input id="name" value={name} onChange={(e) => setName(e.target.value)} required />
+              <div className="space-y-1">
+                <Label htmlFor="name" className="text-zinc-400 text-[11px] font-medium pl-0.5">Nome</Label>
+                <Input 
+                  id="name" 
+                  placeholder="Seu nome"
+                  value={name} 
+                  onChange={(e) => setName(e.target.value)} 
+                  required 
+                  className="w-full h-11 px-4 border border-white/[0.07] bg-black/40 text-sm text-white focus-visible:ring-amber-500/30 placeholder:text-zinc-800 rounded-xl transition-all"
+                />
               </div>
             )}
-            <div className="space-y-1.5">
-              <Label htmlFor="email">E-mail</Label>
+            
+            <div className="space-y-1">
+              <Label htmlFor="email" className="text-zinc-400 text-[11px] font-medium pl-0.5">E-mail</Label>
               <Input
                 id="email"
                 type="email"
+                placeholder="exemplo@email.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                autoComplete="email"
+                className="w-full h-11 px-4 border border-white/[0.07] bg-black/40 text-sm text-white focus-visible:ring-amber-500/30 placeholder:text-zinc-800 rounded-xl transition-all"
               />
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="password">Senha</Label>
+            
+            <div className="space-y-1">
+              <Label htmlFor="password">
+                <span className="text-zinc-400 text-[11px] font-medium pl-0.5">Senha</span>
+              </Label>
               <div className="relative">
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
+                  placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   minLength={6}
-                  className="pr-10"
-                  autoComplete={mode === "signin" ? "current-password" : "new-password"}
+                  className="w-full h-11 pl-4 pr-10 border border-white/[0.07] bg-black/40 text-sm text-white focus-visible:ring-amber-500/30 placeholder:text-zinc-800 rounded-xl transition-all"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((v) => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-zinc-400 transition-colors"
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
             </div>
-            <Button type="submit" disabled={loading} className="w-full rounded-xl" size="lg">
-              {loading ? "Carregando..." : mode === "signin" ? "Entrar" : "Criar conta"}
+
+            <Button 
+              type="submit" 
+              disabled={loading} 
+              className="w-full h-11 rounded-xl bg-zinc-100 text-black hover:bg-zinc-200 font-bold text-xs tracking-wide transition-all cursor-pointer border-none mt-3 shadow-lg shadow-black/20"
+            >
+              {loading ? (
+                "Carregando..."
+              ) : mode === "signin" ? (
+                "Entrar na conta"
+              ) : (
+                <>
+                  <Sparkles className="mr-1.5 h-3.5 w-3.5 fill-black" />
+                  Criar minha conta de treino
+                </>
+              )}
             </Button>
           </form>
 
-          <p className="mt-4 text-center text-sm text-muted-foreground">
-            {mode === "signin" ? "Ainda não tem conta?" : "Já tem conta?"}{" "}
+          {/* Alternador */}
+          <p className="mt-6 text-center text-[11px] text-zinc-500">
+            {mode === "signin" ? "Novo por aqui?" : "Já possui cadastro?"}{" "}
             <button
+              type="button"
               onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
-              className="font-medium text-primary hover:underline"
+              className="font-semibold text-amber-200/50 hover:text-amber-200/80 underline underline-offset-4 transition-colors ml-1 cursor-pointer"
             >
-              {mode === "signin" ? "Criar conta" : "Entrar"}
+              {mode === "signin" ? "Criar conta híbrida" : "Fazer Login tradicional"}
             </button>
           </p>
         </Card>
 
-        <p className="mt-6 text-center text-xs text-muted-foreground">
-          <Link to="/" className="hover:underline">
-            Voltar
+        <p className="mt-4 text-center">
+          <Link to="/" className="text-zinc-700 text-[10px] font-mono hover:text-zinc-500 transition-colors">
+            ← voltar para a home
           </Link>
         </p>
       </div>
+
+      {/* 3. RODAPÉ */}
+      <div className="relative z-10 w-full max-w-4xl mx-auto border-t border-white/[0.04] pt-5 mt-2 flex flex-col sm:flex-row items-center justify-between gap-4">
+        
+        <div className="flex flex-wrap items-center justify-center gap-4 text-zinc-500 text-[10px] font-medium tracking-wide">
+          <div className="flex items-center gap-2 bg-white/[0.01] border border-white/[0.03] px-3 py-1.5 rounded-xl">
+            <Calendar className="h-3.5 w-3.5 text-amber-200/30" />
+            <span>Intelligent weekly schedule</span>
+          </div>
+          <div className="flex items-center gap-2 bg-white/[0.01] border border-white/[0.03] px-3 py-1.5 rounded-xl">
+            <Target className="h-3.5 w-3.5 text-blue-400/30" />
+            <span>Adapted to your goal</span>
+          </div>
+          <div className="flex items-center gap-2 bg-white/[0.01] border border-white/[0.03] px-3 py-1.5 rounded-xl">
+            <Dumbbell className="h-3.5 w-3.5 text-zinc-600" />
+            <span>Musculação em casa</span>
+          </div>
+        </div>
+
+        <div className="hidden sm:block">
+          <FourPointStar />
+        </div>
+      </div>
+
     </div>
   );
 }
