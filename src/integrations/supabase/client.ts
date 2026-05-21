@@ -2,23 +2,14 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined;
-
-if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
-  // Log de aviso mas NÃO lança erro — evita travar o React antes de montar
-  console.warn(
-    '[Supabase] Variáveis de ambiente ausentes: VITE_SUPABASE_URL e/ou VITE_SUPABASE_PUBLISHABLE_KEY.\n' +
-    'Crie um arquivo .env na raiz do projeto com essas variáveis.\n' +
-    'Encontre os valores em: https://supabase.com/dashboard → seu projeto → Settings → API'
-  );
-}
+const SUPABASE_URL = "https://fmpmtexkoxprbswfapjo.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZtcG10ZXhrb3hwcmJzd2ZhcGpvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxMTI2MTEsImV4cCI6MjA5NDY4ODYxMX0.h-L0g2ey6PA0qXK0EKjFHL0rMpUygn7HH6xYBFV6vuo";
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 export const supabase = createClient<Database>(
-  SUPABASE_URL ?? 'https://placeholder.supabase.co',
-  SUPABASE_PUBLISHABLE_KEY ?? 'placeholder-key',
+  SUPABASE_URL,
+  SUPABASE_PUBLISHABLE_KEY,
   {
     auth: {
       storage: typeof window !== 'undefined' ? localStorage : undefined,
