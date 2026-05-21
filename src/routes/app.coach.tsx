@@ -4,7 +4,6 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Sparkles, Send, User } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useServerFn } from "@tanstack/react-start";
 import { chatCoach } from "@/lib/ai.functions";
 import { getChatMessages } from "@/lib/data";
 import { toast } from "sonner";
@@ -33,7 +32,7 @@ function Coach() {
   const [input, setInput] = useState("");
   const [thinking, setThinking] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const send = useServerFn(chatCoach);
+  const send = chatCoach;
 
   useEffect(() => {
     getChatMessages().then((hist) => {
@@ -54,7 +53,7 @@ function Coach() {
     setInput("");
     setThinking(true);
     try {
-      const { reply } = await send({ data: { message: trimmed } });
+      const { reply } = await send({ message: trimmed });
       setMessages((m) => [...m, { role: "assistant", content: reply }]);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erro ao falar com a IA");

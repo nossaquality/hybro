@@ -1,21 +1,22 @@
 import { defineConfig } from "vite";
-import { TanStackRouterVite } from "@tanstack/router-plugin/vite";
+import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import react from "@vitejs/plugin-react";
 import tsconfigPaths from "vite-tsconfig-paths";
 import tailwindcss from "@tailwindcss/vite";
 import { fileURLToPath } from "url";
 import path from "path";
 
-// Cria o equivalente ao __dirname no escopo de ES Modules
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   plugins: [
-    TanStackRouterVite({ autoCodeSplitting: true }),
-    react(),
     tsconfigPaths(),
     tailwindcss(),
+    tanstackStart({
+      start: { entry: "./src/server.ts" },
+      router: { autoCodeSplitting: true } as any,
+    }),
+    react(),
   ],
   resolve: {
     alias: {
