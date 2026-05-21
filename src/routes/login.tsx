@@ -42,9 +42,17 @@ function LoginPage() {
   const [oauthLoading, setOauthLoading] = useState<"google" | null>(null);
 
   useEffect(() => {
+    let isMounted = true;
+  
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/" });
+      if (isMounted && data.session) {
+        navigate({ to: "/" });
+      }
     });
+  
+    return () => {
+      isMounted = false;
+    };
   }, [navigate]);
 
   async function submit(e: React.FormEvent) {
@@ -121,7 +129,7 @@ function LoginPage() {
 
       {/* CARD OTIMIZADO (backdrop-blur-md leve) */}
       <div className="relative z-10 w-full max-w-[420px] mx-auto my-auto py-6">
-        <Card className="rounded-[28px] border border-white/[0.07] bg-zinc-950/60 p-6 sm:p-10 backdrop-blur-md shadow-2xl shadow-black/95 text-zinc-100">
+      <Card className="rounded-[28px] border border-white/[0.07] bg-zinc-950 p-6 sm:p-10 shadow-2xl shadow-black/95 text-zinc-100">
           <div className="text-center mb-6">
             <h2 className="text-xl font-bold tracking-tight text-white">
               {mode === "signin" ? "Hey Bro 👋" : "Criar sua Conta ✨"}

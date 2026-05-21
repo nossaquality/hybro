@@ -4,10 +4,10 @@
   "sideEffects": false,
   "type": "module",
   "scripts": {
-    "dev": "vite dev",
-    "build": "vite build",
+    "dev": "vinxi dev",
+    "build": "vinxi build",
     "build:dev": "vite build --mode development",
-    "preview": "vite preview",
+    "preview": "vinxi start",
     "lint": "eslint .",
     "format": "prettier --write ."
   },
@@ -66,6 +66,7 @@
     "tailwindcss": "^4.2.1",
     "tw-animate-css": "^1.3.4",
     "vaul": "^1.1.2",
+    "vinxi": "^0.5.11",
     "vite-tsconfig-paths": "^6.0.2",
     "zod": "^3.24.2"
   },

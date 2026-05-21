@@ -1,30 +1,29 @@
+// vite.config.ts
 import { defineConfig } from "vite";
 import { TanStackRouterVite } from "@tanstack/router-plugin/vite";
 import react from "@vitejs/plugin-react";
 import tsconfigPaths from "vite-tsconfig-paths";
 import tailwindcss from "@tailwindcss/vite";
-import { fileURLToPath } from "url";
 import path from "path";
-
-// Cria o equivalente ao __dirname no escopo de ES Modules
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-export default defineConfig({
+var vite_config_default = defineConfig({
   plugins: [
     TanStackRouterVite({ autoCodeSplitting: true }),
     react(),
     tsconfigPaths(),
-    tailwindcss(),
+    tailwindcss()
   ],
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
-    },
+      "@": path.resolve(__dirname, "./src")
+    }
   },
   server: {
     host: "0.0.0.0",
     port: 5173,
-    allowedHosts: true,
-  },
+    allowedHosts: true
+    // Libera o acesso para o Cloud Workstations sem travar
+  }
 });
+export {
+  vite_config_default as default
+};

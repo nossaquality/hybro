@@ -16,7 +16,6 @@ import {
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { gerarPlano } from "@/lib/ai.functions";
-import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { getProfile } from "@/lib/data";
 
@@ -25,12 +24,6 @@ type Objetivo = "resistencia" | "velocidade" | "perda_peso" | "prevencao_lesoes"
 
 export const Route = createFileRoute("/onboarding")({
   component: Onboarding,
-  head: () => ({
-    meta: [
-      { title: "Começar · HYBRO" },
-      { name: "description", content: "Monte seu plano personalizado de corrida e musculação em casa." },
-    ],
-  }),
 });
 
 const NIVEIS: { id: Nivel; title: string; desc: string }[] = [
@@ -76,7 +69,7 @@ function Onboarding() {
   const [objetivo, setObjetivo] = useState<Objetivo | null>(null);
   const [equipamentos, setEquipamentos] = useState<string[]>(["peso_corporal"]);
 
-  const gerar = useServerFn(gerarPlano);
+  const gerar = gerarPlano;
 
   useEffect(() => {
     (async () => {
@@ -110,14 +103,12 @@ function Onboarding() {
     setGenerating(true);
     try {
       await gerar({
-        data: {
           name: name.trim(),
           nivel_corrida: nivel!,
           dias_disponiveis: dias,
           objetivo_principal: objetivo!,
           equipamentos_casa: equipamentos,
-        },
-      });
+        });
       navigate({ to: "/app" });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erro ao gerar plano");
