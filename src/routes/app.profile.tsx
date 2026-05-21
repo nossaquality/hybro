@@ -39,7 +39,7 @@ const OBJ_LABEL: Record<string, string> = {
   prevencao_lesoes: "Prevenção de Lesões",
 };
 
-export default function ProfilePage() {
+function ProfilePage() {
   const navigate = useNavigate();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [email, setEmail] = useState("");
