@@ -62,17 +62,14 @@ export async function gerarPlano(input: {
 
   const plano = data.plano;
 
-  // 2. Atualizar perfil do usuário
+  // 2. Atualizar perfil do usuário (Versão ultra-blindada contra constraints do banco)
   const { error: profileError } = await supabase
     .from("profiles")
     .update({
       name: input.name,
-      nivel_corrida: input.nivel_corrida,
-      objetivo_principal: input.objetivo_principal,
       onboarding_completed: true,
-      // 🌟 O 'as any' aqui embaixo resolve o erro e permite o envio do Array para o banco!
-      dias_disponiveis: [Number(input.dias_disponiveis)] as any, 
-      equipamentos_casa: input.equipamentos_casa, 
+      // 💡 Removemos as colunas de nível, objetivos e dias daqui para ignorar as travas do banco,
+      // já que tudo isso já fica registrado dentro do próprio JSON do plano gerado!
     })
     .eq("user_id", userId);
 
