@@ -102,13 +102,13 @@ function Onboarding() {
   async function finish() {
     setGenerating(true);
     try {
-      await gerar({
-          name: name.trim(),
-          nivel_corrida: nivel!,
-          dias_disponiveis: dias,
-          objetivo_principal: objetivo!,
-          equipamentos_casa: equipamentos,
-        });
+      await gerarPlano({
+        name: name.trim(),
+        nivel_corrida: nivel || "", // CORREÇÃO TS: Evita passar null
+        dias_disponiveis: Number(dias),
+        objetivo_principal: objetivo || "", // CORREÇÃO TS: Evita passar null
+        equipamentos_casa: equipamentos,
+      });
       navigate({ to: "/app" });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erro ao gerar plano");

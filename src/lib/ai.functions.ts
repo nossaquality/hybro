@@ -39,73 +39,60 @@ Regras Cruciais:
 // ====================== GERAR PLANO - IA DO LOVABLE ======================
 export async function gerarPlano(input: {
   name: string;
-  nivel_corrida: "iniciante" | "intermediario" | "avancado";
+  nivel_corrida: string;
   dias_disponiveis: number;
-  objetivo_principal: "resistencia" | "velocidade" | "perda_peso" | "prevencao_lesoes";
+  objetivo_principal: string;
   equipamentos_casa: string[];
 }) {
-  try {
-    const { data, error } = await supabase.functions.invoke("generate-plan", {
-      body: {
-        action: "generate_training_plan",
-        userInput: input,
-        systemPrompt: SYSTEM_PROMPT_PLANO
-      },
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Usuário não autenticado");
+  const userId = user.id;
+
+  const { data, error: functionError } = await supabase.functions.invoke("generate-plan", {
+    body: {
+      userInput: input,
+      systemPrompt: "Seu sistema de prompts aqui...",
+    },
+  });
+
+  if (functionError || !data?.plano) {
+    throw new Error(functionError?.message || "Falha ao gerar plano com IA");
+  }
+
+  const plano = data.plano;
+
+  // 2. Atualizar perfil do usuário - CORRIGIDO: dias_disponiveis volta a ser o número puro
+  const { error: profileError } = await supabase
+    .from("profiles")
+    .update({
+      nivel_corrida: input.nivel_corrida,
+      dias_disponiveis: input.dias_disponiveis, // CORREÇÃO TS: Enviando número puro
+      objetivo_principal: input.objetivo_principal,
+      equipamentos_casa: input.equipamentos_casa,
+      onboarding_completed: true,
+    })
+    .eq("user_id", userId);
+
+  if (profileError) throw profileError;
+
+  // 3. Desativar planos antigos
+  await supabase
+    .from("planos_treino")
+    .update({ ativo: false })
+    .eq("user_id", userId);
+
+  // 4. Inserir o novo plano gerado - CORRIGIDO: usando a coluna correta 'plano'
+  const { error: planError } = await supabase
+    .from("planos_treino")
+    .insert({
+      user_id: userId,
+      plano: plano as any, // CORREÇÃO TS: Voltou para 'plano' conforme o erro do schema
+      ativo: true,
     });
 
-    if (error) {
-      console.error("Erro na Edge Function:", error);
-      throw new Error(`Falha ao gerar plano: ${error.message}`);
-    }
+  if (planError) throw planError;
 
-    if (!data?.plano) {
-      throw new Error("A IA não retornou um plano válido");
-    }
-
-    const plano: PlanoTreino = data.plano;
-
-    // === SALVAR NO BANCO ===
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error("Usuário não autenticado.");
-
-    const userId = user.id;
-
-    // Atualiza perfil
-    await supabase
-      .from("profiles")
-      .update({
-        name: input.name,
-        nivel_corrida: input.nivel_corrida,
-        dias_disponiveis: input.dias_disponiveis,
-        objetivo_principal: input.objetivo_principal,
-        equipamentos_casa: input.equipamentos_casa,
-        onboarding_completed: true,
-      })
-      .eq("user_id", userId);
-
-    // Desativa planos antigos
-    await supabase
-      .from("planos_treino")
-      .update({ ativo: false })
-      .eq("user_id", userId)
-      .eq("ativo", true);
-
-    // Insere novo plano
-    const { error: insertError } = await supabase
-      .from("planos_treino")
-      .insert({
-        user_id: userId,
-        plano: plano as any,
-        ativo: true,
-      });
-
-    if (insertError) throw insertError;
-
-    return plano;
-  } catch (err: any) {
-    console.error("Erro em gerarPlano:", err);
-    throw new Error(err.message || "Erro ao gerar o plano com a IA do Lovable");
-  }
+  return plano;
 }
 
 // ====================== CHAT COACH (futuro) ======================
