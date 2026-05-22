@@ -1,7 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { PlanoTreino } from "./plan-types";
 
-// ====================== PROMPT AVANÇADO (SEU ORIGINAL) ======================
+// ====================== PROMPT AVANÇADO ======================
 const SYSTEM_PROMPT_PLANO = `Você é um treinador especialista em Treinamento Híbrido de Elite (ciência baseada nos conceitos de Alex Viada e no método Concurrent Training). Seu objetivo é montar planilhas que desenvolvam força máxima/hipertrofia e endurance cardiovascular simultaneamente, mitigando o Efeito de Interferência.
 
 Diretrizes Científicas de Programação que você DEVE seguir:
@@ -36,7 +36,7 @@ Regras Cruciais:
 - Adapte a distribuição do volume de acordo com o objetivo (ex: perda de peso vs. velocidade).
 - Use ids únicos por tarefa (ex: seg-1, ter-1).`;
 
-// ====================== GERAR PLANO - IA DO LOVABLE ======================
+// ====================== GERAR PLANO ======================
 export async function gerarPlano(input: {
   name: string;
   nivel_corrida: string;
@@ -48,10 +48,11 @@ export async function gerarPlano(input: {
   if (!user) throw new Error("Usuário não autenticado");
   const userId = user.id;
 
+  // CORREÇÃO: envia o SYSTEM_PROMPT_PLANO real em vez do placeholder
   const { data, error: functionError } = await supabase.functions.invoke("generate-plan", {
     body: {
       userInput: input,
-      systemPrompt: "Seu sistema de prompts aqui...",
+      systemPrompt: SYSTEM_PROMPT_PLANO,
     },
   });
 
@@ -61,12 +62,12 @@ export async function gerarPlano(input: {
 
   const plano = data.plano;
 
-  // 2. Atualizar perfil do usuário - CORRIGIDO: dias_disponiveis volta a ser o número puro
+  // 2. Atualizar perfil do usuário
   const { error: profileError } = await supabase
     .from("profiles")
     .update({
       nivel_corrida: input.nivel_corrida,
-      dias_disponiveis: input.dias_disponiveis, // CORREÇÃO TS: Enviando número puro
+      dias_disponiveis: input.dias_disponiveis,
       objetivo_principal: input.objetivo_principal,
       equipamentos_casa: input.equipamentos_casa,
       onboarding_completed: true,
@@ -81,12 +82,12 @@ export async function gerarPlano(input: {
     .update({ ativo: false })
     .eq("user_id", userId);
 
-  // 4. Inserir o novo plano gerado - CORRIGIDO: usando a coluna correta 'plano'
+  // 4. Inserir o novo plano gerado
   const { error: planError } = await supabase
     .from("planos_treino")
     .insert({
       user_id: userId,
-      plano: plano as any, // CORREÇÃO TS: Voltou para 'plano' conforme o erro do schema
+      plano: plano as any,
       ativo: true,
     });
 

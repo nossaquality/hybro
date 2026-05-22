@@ -13,15 +13,16 @@ serve(async (req) => {
   }
 
   try {
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
+    // 1. Busca a SUA chave direto das configurações de ambiente do Supabase
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+    if (!GEMINI_API_KEY) {
       return new Response(
-        JSON.stringify({ error: "LOVABLE_API_KEY não configurada no servidor." }),
+        JSON.stringify({ error: "GEMINI_API_KEY não configurada nas variáveis de ambiente do Supabase." }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       );
     }
 
-    // 1. Extrai o userInput vindo do frontend
+    // 2. Extrai o userInput vindo do frontend
     const { userInput, systemPrompt } = await req.json()
     if (!userInput) {
       return new Response(
@@ -30,7 +31,7 @@ serve(async (req) => {
       );
     }
 
-    // 2. AQUI ENTRA O SEU USER PROMPT EXATAMENTE ONDE DEVE FICAR:
+    // 3. Montagem do prompt
     const userPrompt = `Monte o plano híbrido semanal em JSON conforme o schema, baseado nestes dados do usuário:
 
 Nome: ${userInput.name || "Atleta"}
@@ -42,43 +43,56 @@ Equipamentos em casa: ${(userInput.equipamentos_casa ?? []).join(", ") || "apena
 Responda APENAS com o JSON válido (sem markdown, sem comentários).`;
 
     const defaultSystemPrompt = "Você é um treinador especialista em corrida e musculação (treino híbrido). Monte um cronograma perfeito focado nos objetivos do usuário e retorne um objeto JSON puro.";
+    const finalSystemInstruction = systemPrompt || defaultSystemPrompt;
 
-    // 3. Faz a chamada real para a IA (Gemini 2.5 Flash via Lovable Gateway)
-    const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: systemPrompt || defaultSystemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-        response_format: { type: "json_object" },
-      }),
-    });
+    // 4. Chamada DIRETA para o endpoint oficial do Google AI Studio (Gemini 2.5 Flash)
+    const aiRes = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          // Passando as instruções do sistema nas configurações oficiais da Google
+          systemInstruction: {
+            parts: [{ text: finalSystemInstruction }]
+          },
+          contents: [
+            {
+              role: "user",
+              parts: [{ text: userPrompt }]
+            }
+          ],
+          generationConfig: {
+            // Força a resposta a vir estruturada como JSON puro
+            responseMimeType: "application/json"
+          }
+        }),
+      }
+    );
 
     if (!aiRes.ok) {
       const text = await aiRes.text();
-      console.error("AI Gateway error:", aiRes.status, text);
+      console.error("Google Gemini API error:", aiRes.status, text);
       return new Response(
-        JSON.stringify({ error: `Falha na IA (${aiRes.status})` }),
+        JSON.stringify({ error: `Falha na API da Google (${aiRes.status})` }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       );
     }
 
     const aiJson = await aiRes.json();
-    const content = aiJson?.choices?.[0]?.message?.content;
+    
+    // Mapeia a resposta da estrutura nativa da Google
+    const content = aiJson?.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!content) {
       return new Response(
-        JSON.stringify({ error: "Resposta da IA vazia." }),
+        JSON.stringify({ error: "Resposta da Google veio sem conteúdo." }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       );
     }
 
-    // 4. Trata e valida se a IA respondeu um JSON correto
+    // 5. Trata e valida se a resposta é um JSON correto
     let plano: unknown;
     try {
       plano = JSON.parse(content);
@@ -86,14 +100,14 @@ Responda APENAS com o JSON válido (sem markdown, sem comentários).`;
       const match = content.match(/\{[\s\S]*\}/);
       if (!match) {
         return new Response(
-          JSON.stringify({ error: "Resposta da IA não contém um JSON válido." }),
+          JSON.stringify({ error: "A IA não retornou um formato JSON válido." }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
         );
       }
       plano = JSON.parse(match[0]);
     }
 
-    // 5. Retorna o plano montado de verdade para o frontend!
+    // 6. Retorna o plano limpo para o front-end
     return new Response(
       JSON.stringify({ plano }),
       { 
