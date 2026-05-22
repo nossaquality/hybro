@@ -92,19 +92,30 @@ Responda APENAS com o JSON válido (sem markdown, sem comentários).`;
       );
     }
 
-    // 5. Trata e valida se a resposta é um JSON correto
+    // 5. Trata e valida se a resposta é um JSON correto (Ultra-blindado)
     let plano: unknown;
+    const cleanContent = content.replace(/```json/g, "").replace(/```/g, "").trim();
+    
     try {
-      plano = JSON.parse(content);
+      plano = JSON.parse(cleanContent);
     } catch {
-      const match = content.match(/\{[\s\S]*\}/);
+      const match = cleanContent.match(/\{[\s\S]*\}/);
       if (!match) {
+        console.error("Conteúdo bruto que quebrou:", content);
         return new Response(
-          JSON.stringify({ error: "A IA não retornou um formato JSON válido." }),
+          JSON.stringify({ error: "A IA não retornou um formato JSON válido estruturado." }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
         );
       }
-      plano = JSON.parse(match[0]);
+      try {
+        plano = JSON.parse(match[0]);
+      } catch (parseErr) {
+        console.error("Falha ao parsear o bloco regex:", match[0], parseErr);
+        return new Response(
+          JSON.stringify({ error: "Erro crítico de análise no formato do plano." }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+        );
+      }
     }
 
     // 6. Retorna o plano limpo para o front-end

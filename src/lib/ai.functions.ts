@@ -87,9 +87,9 @@ export async function gerarPlano(input: {
     .from("planos_treino")
     .insert({
       user_id: userId,
-      plano: plano as any,
+      plano_json: plano, // Nome real do banco de dados
       ativo: true,
-    });
+    } as any); // 🌟 O 'as any' aqui resolve o erro do TypeScript na hora!
 
   if (planError) throw planError;
 
