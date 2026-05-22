@@ -102,6 +102,7 @@ function Onboarding() {
   async function finish() {
     setGenerating(true);
     try {
+      // 1. Dispara a geração com a Groq e atualiza tabelas
       await gerarPlano({
         name: name.trim(),
         nivel_corrida: nivel || "", 
@@ -110,9 +111,18 @@ function Onboarding() {
         equipamentos_casa: equipamentos,
       });
       
-      // 🌟 CORREÇÃO 1: Força a mudança de página limpando o estado local travado
-      window.location.href = "/app"; 
+      // 🌟 CORREÇÃO 1: Aguarda 1 segundo para dar tempo do Supabase propagar
+      // as alterações nos nós do banco antes da leitura do layout principal
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      
+      toast.success("Plano de elite estruturado com sucesso!");
+
+      // 🌟 CORREÇÃO 2: Usa o roteador nativo para mover o usuário para a rota "/app"
+      // de forma limpa, evitando o erro 404 de recarregamento forçado.
+      navigate({ to: "/app" });
+
     } catch (err) {
+      console.error(err);
       toast.error(err instanceof Error ? err.message : "Erro ao gerar plano");
       setGenerating(false);
     }
