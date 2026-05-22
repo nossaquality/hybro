@@ -104,12 +104,14 @@ function Onboarding() {
     try {
       await gerarPlano({
         name: name.trim(),
-        nivel_corrida: nivel || "", // CORREÇÃO TS: Evita passar null
+        nivel_corrida: nivel || "", 
         dias_disponiveis: Number(dias),
-        objetivo_principal: objetivo || "", // CORREÇÃO TS: Evita passar null
+        objetivo_principal: objetivo || "", 
         equipamentos_casa: equipamentos,
       });
-      navigate({ to: "/app" });
+      
+      // 🌟 CORREÇÃO 1: Força a mudança de página limpando o estado local travado
+      window.location.href = "/app"; 
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erro ao gerar plano");
       setGenerating(false);
@@ -118,8 +120,11 @@ function Onboarding() {
 
   if (!authReady) return null;
   if (!authed) return <Navigate to="/login" />;
-  if (alreadyDone) return <Navigate to="/app" />;
+  
+  // 🌟 CORREÇÃO 2: Se estiver gerando, renderiza a tela de carregamento primeiro!
+  // Isso impede que a trava de baixo intercepte o fluxo antes da hora.
   if (generating) return <GeneratingScreen name={name} />;
+  if (alreadyDone) return <Navigate to="/app" />;;
 
   return (
     <div className="flex min-h-screen flex-col justify-between bg-[#040405] text-zinc-200 font-sans selection:bg-amber-500/30 antialiased relative overflow-hidden px-6 py-8">
