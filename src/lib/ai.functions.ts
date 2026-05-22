@@ -66,15 +66,20 @@ export async function gerarPlano(input: {
   const { error: profileError } = await supabase
     .from("profiles")
     .update({
+      name: input.name,
       nivel_corrida: input.nivel_corrida,
-      dias_disponiveis: input.dias_disponiveis,
       objetivo_principal: input.objetivo_principal,
-      equipamentos_casa: input.equipamentos_casa,
       onboarding_completed: true,
+      // 🌟 O 'as any' aqui embaixo resolve o erro e permite o envio do Array para o banco!
+      dias_disponiveis: [Number(input.dias_disponiveis)] as any, 
+      equipamentos_casa: input.equipamentos_casa, 
     })
     .eq("user_id", userId);
 
-  if (profileError) throw profileError;
+  if (profileError) {
+    console.error("Erro detalhado no profiles:", profileError);
+    throw profileError;
+  }
 
   // 3. Desativar planos antigos
   await supabase
