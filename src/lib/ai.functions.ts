@@ -100,35 +100,32 @@ export async function gerarPlano(input: {
 
 // ====================== CHAT COACH INTERLIGADO ======================
 export async function chatCoach(input: { message: string }) {
-  // 1. Pega o usuário logado
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Usuário não autenticado");
   const userId = user.id;
 
-  // 2. Salva a mensagem do usuário na tabela mensagens_chat (com os nomes de colunas reais)
+  // 1. Salva mensagem do usuário
   const { error: userMsgError } = await supabase
     .from("mensagens_chat")
-    .insert({
-      user_id: userId,
-      role: "user",
-      content: input.message
-    });
-
+    .insert({ user_id: userId, role: "user", content: input.message });
   if (userMsgError) throw userMsgError;
 
-  // 3. Resposta temporária inteligente da IA enquanto a Edge Function dedicada não é plugada
-  const botReply = "Treino recebido! Como seu treinador IA, estou analisando seu progresso atualizado no dashboard para recalibrar seus próximos blocos de corrida e musculação. O que mais você gostaria de ajustar?";
+  // 2. Chama a Edge Function que conversa com a IA (contexto: plano ativo + perfil + histórico)
+  const { data, error: fnError } = await supabase.functions.invoke("chat-coach", {
+    body: { message: input.message },
+  });
 
-  // 4. Salva a resposta da IA na tabela para manter o histórico lindo na tela
+  if (fnError || !data?.reply) {
+    throw new Error(fnError?.message || data?.error || "Falha ao falar com o treinador IA");
+  }
+
+  const reply: string = data.reply;
+
+  // 3. Salva resposta da IA
   const { error: aiMsgError } = await supabase
     .from("mensagens_chat")
-    .insert({
-      user_id: userId,
-      role: "assistant",
-      content: botReply
-    });
-
+    .insert({ user_id: userId, role: "assistant", content: reply });
   if (aiMsgError) throw aiMsgError;
 
-  return { reply: botReply };
+  return { reply };
 }

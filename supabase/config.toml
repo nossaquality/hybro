@@ -1,1 +1,7 @@
 project_id = "zbxaxobnhbqktfaqeqbp"
+
+[functions.generate-plan]
+verify_jwt = false
+
+[functions.chat-coach]
+verify_jwt = false
