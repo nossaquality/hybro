@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { gerarPlano } from "@/lib/ai.functions";
 import { toast } from "sonner";
-import { getProfile } from "@/lib/data";
+import { getProfile, forceOnboardingCompletedInMemory } from "@/lib/data";
 
 type Nivel = "iniciante" | "intermediario" | "avancado";
 type Objetivo = "resistencia" | "velocidade" | "perda_peso" | "prevencao_lesoes";
@@ -111,10 +111,19 @@ function Onboarding() {
         equipamentos_casa: equipamentos,
       });
       
-      // 🌟 CORREÇÃO 1: Aguarda 1 segundo para dar tempo do Supabase propagar
-      // as alterações nos nós do banco antes da leitura do layout principal
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      
+      // 🌟 CORREÇÃO 1: Marca o onboarding como concluído em memória
+      // imediatamente, contornando o delay de propagação do banco.
+      forceOnboardingCompletedInMemory({
+        name: name.trim(),
+        nivel_corrida: nivel || null,
+        dias_disponiveis: Number(dias),
+        objetivo_principal: objetivo || null,
+        equipamentos_casa: equipamentos,
+      });
+
+      // Pequeno delay para a UI exibir o sucesso antes do redirect
+      await new Promise((resolve) => setTimeout(resolve, 400));
+
       toast.success("Plano de elite estruturado com sucesso!");
 
       // 🌟 CORREÇÃO 2: Usa o roteador nativo para mover o usuário para a rota "/app"
