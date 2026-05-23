@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { gerarPlano } from "@/lib/ai.functions";
 import { toast } from "sonner";
-import { getProfile } from "@/lib/data";
+import { getProfile, forceOnboardingCompletedInMemory } from "@/lib/data";
 
 type Nivel = "iniciante" | "intermediario" | "avancado";
 type Objetivo = "resistencia" | "velocidade" | "perda_peso" | "prevencao_lesoes";
