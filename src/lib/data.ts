@@ -21,10 +21,31 @@ export interface Profile {
   onboarding_completed: boolean;
 }
 
+let memoryProfile: Profile | null = null;
+
+export function forceOnboardingCompletedInMemory(patch?: Partial<Profile>) {
+  memoryProfile = {
+    user_id: memoryProfile?.user_id ?? "",
+    name: memoryProfile?.name ?? null,
+    nivel_corrida: memoryProfile?.nivel_corrida ?? null,
+    dias_disponiveis: memoryProfile?.dias_disponiveis ?? null,
+    objetivo_principal: memoryProfile?.objetivo_principal ?? null,
+    equipamentos_casa: memoryProfile?.equipamentos_casa ?? null,
+    ...(patch ?? {}),
+    onboarding_completed: true,
+  };
+}
+
+export function clearProfileMemory() {
+  memoryProfile = null;
+}
+
 export async function getProfile(): Promise<Profile | null> {
+  if (memoryProfile?.onboarding_completed) return memoryProfile;
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
   const { data } = await supabase.from("profiles").select("*").eq("user_id", user.id).maybeSingle();
+  if (data) memoryProfile = data as Profile;
   return (data as Profile) ?? null;
 }
 
