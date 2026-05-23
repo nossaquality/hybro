@@ -33,7 +33,7 @@ Retorne APENAS um JSON válido seguindo EXATAMENTE este schema (sem markdown, se
 Regras Cruciais:
 - Sempre retorne exatamente 7 dias na semana.
 - Use APENAS os equipamentos informados (peso corporal sempre disponível).
-- Adapte a distribuição do volume de acordo com o objetivo (ex: perda de peso vs. velocidade).
+- Adapte a distribution do volume de acordo com o objetivo (ex: perda de peso vs. velocidade).
 - Use ids únicos por tarefa (ex: seg-1, ter-1).`;
 
 // ====================== GERAR PLANO ======================
@@ -48,7 +48,6 @@ export async function gerarPlano(input: {
   if (!user) throw new Error("Usuário não autenticado");
   const userId = user.id;
 
-  // CORREÇÃO: envia o SYSTEM_PROMPT_PLANO real em vez do placeholder
   const { data, error: functionError } = await supabase.functions.invoke("generate-plan", {
     body: {
       userInput: input,
@@ -62,14 +61,11 @@ export async function gerarPlano(input: {
 
   const plano = data.plano;
 
-  // 2. Atualizar perfil do usuário (Versão ultra-blindada contra constraints do banco)
   const { error: profileError } = await supabase
     .from("profiles")
     .update({
       name: input.name,
       onboarding_completed: true,
-      // 💡 Removemos as colunas de nível, objetivos e dias daqui para ignorar as travas do banco,
-      // já que tudo isso já fica registrado dentro do próprio JSON do plano gerado!
     })
     .eq("user_id", userId);
 
@@ -78,72 +74,60 @@ export async function gerarPlano(input: {
     throw profileError;
   }
 
-  // 3. Desativar planos antigos
   await supabase
     .from("planos_treino")
     .update({ ativo: false })
     .eq("user_id", userId);
 
-  // 4. Inserir o novo plano gerado
   const { error: planError } = await supabase
     .from("planos_treino")
     .insert({
       user_id: userId,
-      plano_json: plano, // Nome real do banco de dados
+      plano_json: plano,
       ativo: true,
-    } as any); // 🌟 O 'as any' aqui resolve o erro do TypeScript na hora!
+    } as any);
 
   if (planError) throw planError;
 
   return plano;
 }
 
-// ====================== CHAT COACH INTERLIGADO ======================
+// ====================== CHAT COACH INTERLIGADO (IA REAL LIMPA) ======================
 export async function chatCoach(input: { message: string }) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Usuário não autenticado");
   const userId = user.id;
 
-  // 1. Salva mensagem do usuário
+  // 1. Salva a mensagem que você digitou no banco de dados
   const { error: userMsgError } = await supabase
     .from("mensagens_chat")
     .insert({ user_id: userId, role: "user", content: input.message });
   if (userMsgError) throw userMsgError;
 
-  // 2. Chama Edge Function com timeout + fallback amigável (evita travar a UI)
-  const FALLBACK_REPLY =
-    "⚠️ Não consegui falar com o treinador IA agora (instabilidade momentânea). Sua mensagem foi salva — tente novamente em instantes.";
-
-  let reply: string = FALLBACK_REPLY;
+  let reply = "";
   let fallback = false;
 
   try {
-    const timeoutPromise = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error("timeout")), 30000),
-    );
-
-    const invokePromise = supabase.functions.invoke("chat-coach", {
+    // 2. Chama a Edge Function na nuvem para pegar a resposta da IA real
+    const { data, error: fnError } = await supabase.functions.invoke("chat-coach", {
       body: { message: input.message },
     });
 
-    const { data, error: fnError } = (await Promise.race([
-      invokePromise,
-      timeoutPromise,
-    ])) as Awaited<typeof invokePromise>;
-
     if (fnError || !data?.reply) {
-      console.error("chat-coach falhou:", fnError, data);
+      console.error("Erro retornado da Edge Function:", fnError, data);
+      reply = "⚠️ O servidor da IA recusou a conexão ou demorou para responder. Verifique os logs no Supabase.";
       fallback = true;
-      if (data?.error) reply = `⚠️ ${data.error}`;
     } else {
-      reply = data.reply as string;
+      // Sucesso! A IA real respondeu
+      reply = data.reply;
     }
   } catch (e) {
-    console.error("chat-coach exceção/timeout:", e);
+    console.error("Exceção de rede no chat:", e);
+    reply = "⚠️ Erro de comunicação com o servidor do Chat Coach.";
     fallback = true;
   }
 
-  // 3. Salva resposta (real ou fallback) para manter o histórico consistente
+  // 3. Salva a resposta da IA (ou o erro) no banco para mostrar na tela
   const { error: aiMsgError } = await supabase
     .from("mensagens_chat")
     .insert({ user_id: userId, role: "assistant", content: reply });
