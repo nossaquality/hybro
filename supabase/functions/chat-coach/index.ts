@@ -53,7 +53,7 @@ serve(async (req) => {
 
     // Contexto: plano ativo + perfil + últimas mensagens
     const [{ data: planoRow }, { data: profile }, { data: history }] = await Promise.all([
-      supabase.from("planos_treino").select("plano").eq("user_id", userId).eq("ativo", true)
+      supabase.from("planos_treino").select("plano_json").eq("user_id", userId).eq("ativo", true)
         .order("created_at", { ascending: false }).limit(1).maybeSingle(),
       supabase.from("profiles").select("name, nivel_corrida, dias_disponiveis, objetivo_principal, equipamentos_casa")
         .eq("user_id", userId).maybeSingle(),
@@ -61,7 +61,7 @@ serve(async (req) => {
         .order("created_at", { ascending: false }).limit(10),
     ]);
 
-    const planoStr = planoRow?.plano ? JSON.stringify(planoRow.plano).slice(0, 8000) : "Nenhum plano ativo.";
+    const planoStr = planoRow?.plano_json ? JSON.stringify(planoRow.plano_json).slice(0, 8000) : "Nenhum plano ativo.";
     const profileStr = profile ? JSON.stringify(profile) : "Perfil não preenchido.";
     const histAsc = (history ?? []).slice().reverse();
 
