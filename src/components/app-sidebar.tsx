@@ -32,12 +32,11 @@ export function AppSidebar() {
     <Sidebar collapsible="icon">
       <SidebarHeader>
         <div className="flex items-center gap-2 px-2 py-2">
-          <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground">
             <Activity className="h-5 w-5" />
           </div>
           <div className="flex flex-col leading-tight">
-            <span className="text-base font-semibold tracking-tight">Stride</span>
-            <span className="text-xs text-muted-foreground">Corrida + Força</span>
+            <span className="text-base font-semibold tracking-tight">HYBRO</span>
+            <span className="text-xs text-muted-foreground">Seu Treino Híbrido inteligente</span>
           </div>
         </div>
       </SidebarHeader>
