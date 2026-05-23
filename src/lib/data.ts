@@ -54,13 +54,13 @@ export async function getActivePlan(): Promise<PlanoTreino | null> {
   if (!user) return null;
   const { data } = await supabase
     .from("planos_treino")
-    .select("plano") // CORREÇÃO TS: Mudado de plano_json para plano
+    .select("plano_json")
     .eq("user_id", user.id)
     .eq("ativo", true)
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
-  return (data?.plano as unknown as PlanoTreino) ?? null; // CORREÇÃO TS: Lendo de plano
+  return ((data as any)?.plano_json as unknown as PlanoTreino) ?? null;
 }
 
 export async function getTodayProgress(): Promise<Record<string, ProgressoEntry>> {
