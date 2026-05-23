@@ -110,22 +110,44 @@ export async function chatCoach(input: { message: string }) {
     .insert({ user_id: userId, role: "user", content: input.message });
   if (userMsgError) throw userMsgError;
 
-  // 2. Chama a Edge Function que conversa com a IA (contexto: plano ativo + perfil + histórico)
-  const { data, error: fnError } = await supabase.functions.invoke("chat-coach", {
-    body: { message: input.message },
-  });
+  // 2. Chama Edge Function com timeout + fallback amigável (evita travar a UI)
+  const FALLBACK_REPLY =
+    "⚠️ Não consegui falar com o treinador IA agora (instabilidade momentânea). Sua mensagem foi salva — tente novamente em instantes.";
 
-  if (fnError || !data?.reply) {
-    throw new Error(fnError?.message || data?.error || "Falha ao falar com o treinador IA");
+  let reply: string = FALLBACK_REPLY;
+  let fallback = false;
+
+  try {
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("timeout")), 30000),
+    );
+
+    const invokePromise = supabase.functions.invoke("chat-coach", {
+      body: { message: input.message },
+    });
+
+    const { data, error: fnError } = (await Promise.race([
+      invokePromise,
+      timeoutPromise,
+    ])) as Awaited<typeof invokePromise>;
+
+    if (fnError || !data?.reply) {
+      console.error("chat-coach falhou:", fnError, data);
+      fallback = true;
+      if (data?.error) reply = `⚠️ ${data.error}`;
+    } else {
+      reply = data.reply as string;
+    }
+  } catch (e) {
+    console.error("chat-coach exceção/timeout:", e);
+    fallback = true;
   }
 
-  const reply: string = data.reply;
-
-  // 3. Salva resposta da IA
+  // 3. Salva resposta (real ou fallback) para manter o histórico consistente
   const { error: aiMsgError } = await supabase
     .from("mensagens_chat")
     .insert({ user_id: userId, role: "assistant", content: reply });
   if (aiMsgError) throw aiMsgError;
 
-  return { reply };
+  return { reply, fallback };
 }
