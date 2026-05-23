@@ -32,10 +32,9 @@ export function AppSidebar() {
     <Sidebar collapsible="icon">
       <SidebarHeader>
         <div className="flex items-center gap-2 px-2 py-2">
-            <Activity className="h-5 w-5" />
-          </div>
+          <Activity className="h-5 w-5" />
           <div className="flex flex-col leading-tight">
-            <span className="text-base font-semibold tracking-tight">HYBRO</span>
+            <span className="text-base font-semibold tracking-tight">HYBRO IA</span>
             <span className="text-xs text-muted-foreground">Seu Treino Híbrido inteligente</span>
           </div>
         </div>
