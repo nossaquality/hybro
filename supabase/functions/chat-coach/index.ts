@@ -31,48 +31,66 @@ DIRETRIZES CRÍTICAS:
    - Respostas curtas a médias (~6 parágrafos máx). Use markdown leve quando ajudar.`;
 
 serve(async (req) => {
+  console.log("[1] Iniciando requisição");
+  
   if (req.method === "OPTIONS") {
+    console.log("[2] OPTIONS request");
     return new Response("ok", { headers: corsHeaders, status: 200 });
   }
 
   try {
+    console.log("[3] Validando env vars");
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
 
-    if (!LOVABLE_API_KEY || !SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    if (!LOVABLE_API_KEY) {
+      console.error("[ERROR] LOVABLE_API_KEY ausente");
       return new Response(
-        JSON.stringify({ error: "Variáveis de ambiente ausentes" }),
+        JSON.stringify({ error: "LOVABLE_API_KEY not configured" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
+    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+      console.error("[ERROR] Supabase env vars ausentes");
+      return new Response(
+        JSON.stringify({ error: "Supabase env incomplete" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log("[4] Parseando body");
     const body = await req.json();
     const message = body?.message;
 
     if (!message || typeof message !== "string") {
+      console.error("[ERROR] Message invalid");
       return new Response(
-        JSON.stringify({ error: "Mensagem inválida" }),
+        JSON.stringify({ error: "Invalid message" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
+    console.log("[5] Verificando auth header");
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
+      console.error("[ERROR] Auth header ausente");
       return new Response(
-        JSON.stringify({ error: "Não autenticado" }),
+        JSON.stringify({ error: "Not authenticated" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Autenticar usuário
+    console.log("[6] Autenticando usuário via REST");
     const authRes = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
       headers: { Authorization: authHeader },
     });
 
     if (!authRes.ok) {
+      console.error(`[ERROR] Auth failed: ${authRes.status}`);
       return new Response(
-        JSON.stringify({ error: "Não autenticado" }),
+        JSON.stringify({ error: "Auth failed" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -81,13 +99,16 @@ serve(async (req) => {
     const userId = userData?.id;
 
     if (!userId) {
+      console.error("[ERROR] User ID não encontrado");
       return new Response(
-        JSON.stringify({ error: "User ID inválido" }),
+        JSON.stringify({ error: "Invalid user ID" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Carregar contexto em paralelo
+    console.log(`[7] User autenticado: ${userId}`);
+
+    console.log("[8] Carregando contexto (plano, perfil, histórico)");
     const [planoRes, profileRes, historyRes] = await Promise.all([
       fetch(
         `${SUPABASE_URL}/rest/v1/planos_treino?select=plano_json&user_id=eq.${userId}&ativo=eq.true&order=created_at.desc&limit=1`,
@@ -103,17 +124,20 @@ serve(async (req) => {
       ),
     ]);
 
+    console.log(`[9] Respostas recebidas: plano=${planoRes.ok}, profile=${profileRes.ok}, history=${historyRes.ok}`);
+
     const [planoList, profileList, historyList] = await Promise.all([
       planoRes.ok ? planoRes.json() : [],
       profileRes.ok ? profileRes.json() : [],
       historyRes.ok ? historyRes.json() : [],
     ]);
 
+    console.log(`[10] Dados parseados: plano=${planoList?.length || 0}, profile=${profileList?.length || 0}, history=${historyList?.length || 0}`);
+
     const planoJson = planoList[0]?.plano_json;
     const profileData = profileList[0];
     const historyData = historyList || [];
 
-    // Montar contexto
     const planoStr = planoJson
       ? JSON.stringify(planoJson).slice(0, 8000)
       : "Nenhum plano ativo.";
@@ -129,6 +153,7 @@ serve(async (req) => {
         content: m?.content || "",
       }));
 
+    console.log("[11] Montando messages para IA");
     const messages = [
       { role: "system", content: SYSTEM_PROMPT },
       {
@@ -159,7 +184,7 @@ serve(async (req) => {
       },
     ];
 
-    // Chamar IA
+    console.log("[12] Chamando IA gateway");
     const aiRes = await fetch(
       "https://ai.gateway.lovable.dev/v1/chat/completions",
       {
@@ -176,33 +201,39 @@ serve(async (req) => {
       }
     );
 
+    console.log(`[13] IA respondeu com status: ${aiRes.status}`);
+
     if (!aiRes.ok) {
       const errText = await aiRes.text();
-      console.error(`IA error ${aiRes.status}:`, errText);
+      console.error(`[ERROR] IA error ${aiRes.status}: ${errText}`);
       
       if (aiRes.status === 429) {
         return new Response(
-          JSON.stringify({ error: "Limite de requisições atingido" }),
+          JSON.stringify({ error: "Rate limit exceeded" }),
           { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
       return new Response(
-        JSON.stringify({ error: "Falha ao chamar a IA" }),
+        JSON.stringify({ error: "IA call failed", details: errText }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
+    console.log("[14] Parseando resposta da IA");
     const aiJson = await aiRes.json();
     const aiMessage = aiJson?.choices?.[0]?.message || {};
     let finalReply = (aiMessage.content || "").trim() || "";
     const toolCalls = aiMessage.tool_calls || [];
 
-    // Processar tool calls
+    console.log(`[15] IA response: reply=${finalReply.length} chars, toolCalls=${toolCalls.length}`);
+
     if (toolCalls && toolCalls.length > 0) {
+      console.log("[16] Processando tool calls");
       for (const toolCall of toolCalls) {
         if (toolCall?.function?.name === "atualizar_plano_treino") {
           try {
+            console.log("[17] Atualizando plano");
             const argumentos = JSON.parse(toolCall.function.arguments || "{}");
             const novoPlamoJson = JSON.parse(argumentos.novo_plano_json || "{}");
 
@@ -220,9 +251,10 @@ serve(async (req) => {
             );
 
             if (!updateRes.ok) {
-              finalReply = "Erro ao atualizar plano. Tente novamente.";
+              console.error(`[ERROR] Update failed: ${updateRes.status}`);
+              finalReply = "Erro ao atualizar plano.";
             } else {
-              // Segunda chamada à IA
+              console.log("[18] Plano atualizado, segunda chamada à IA");
               const updatedMessages = [
                 ...messages,
                 { role: "assistant", content: aiMessage.content || "" },
@@ -254,27 +286,33 @@ serve(async (req) => {
                 if (!finalReply) {
                   finalReply = "Plano atualizado com sucesso!";
                 }
+                console.log("[19] Segunda chamada concluída");
               } else {
                 finalReply = "Plano atualizado com sucesso!";
+                console.log("[19] Segunda chamada falhou, usando fallback");
               }
             }
           } catch (e) {
-            console.error("Tool call error:", e);
+            console.error(`[ERROR] Tool call error: ${e.message}`);
             finalReply = "Erro ao processar atualização.";
           }
         }
       }
     }
 
+    console.log("[20] Retornando resposta final");
     return new Response(JSON.stringify({ reply: finalReply }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
-    console.error("Error:", e);
+    console.error(`[CRITICAL ERROR] ${e.message}`);
+    if (e instanceof Error) {
+      console.error(`[STACK] ${e.stack}`);
+    }
     return new Response(
       JSON.stringify({
-        error: "Erro interno",
+        error: "Critical error",
         details: e instanceof Error ? e.message : String(e),
       }),
       {
