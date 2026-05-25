@@ -1,6 +1,5 @@
 // @ts-nocheck
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -32,191 +31,279 @@ DIRETRIZES CRÍTICAS:
    - Não invente exercícios fora do plano sem justificar.
    - Respostas curtas a médias (~6 parágrafos máx). Use markdown leve quando ajudar.`;
 
-serve(async (req) => {
-  console.log(`[CHAT-COACH] Requisição recebida: ${req.method}`);
+// Classe simples para chamadas HTTP ao Supabase (100% Deno-native)
+class SupabaseClient {
+  constructor(url, key) {
+    this.url = url;
+    this.key = key;
+    this.authHeader = null;
+  }
 
-  // CORS: Intercepta OPTIONS com status 200 imediato
+  setAuthHeader(header) {
+    this.authHeader = header;
+  }
+
+  async request(method, path, body = null) {
+    const headers = {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${this.key}`,
+    };
+
+    if (this.authHeader) {
+      headers["Authorization"] = this.authHeader;
+    }
+
+    const options = {
+      method,
+      headers,
+    };
+
+    if (body) {
+      options.body = JSON.stringify(body);
+    }
+
+    try {
+      const response = await fetch(`${this.url}${path}`, options);
+      const data = await response.json();
+
+      return {
+        data: data,
+        error: response.ok ? null : { message: data?.message || "Erro na requisição" },
+        ok: response.ok,
+      };
+    } catch (e) {
+      return {
+        data: null,
+        error: { message: e.message },
+        ok: false,
+      };
+    }
+  }
+
+  // Simular from().select().eq().maybeSingle()
+  async from(table) {
+    const self = this;
+    return {
+      select: (columns) => ({
+        eq: (column, value) => ({
+          maybeSingle: async () => {
+            const query = `?select=${columns}&${column}=eq.${value}`;
+            return self.request("GET", `/rest/v1/${table}${query}`);
+          },
+        }),
+        order: (column, options) => ({
+          limit: (n) => ({
+            maybeSingle: async () => {
+              const query = `?select=${columns}&order=${column}.${options.ascending ? "asc" : "desc"}&limit=${n}`;
+              return self.request("GET", `/rest/v1/${table}${query}`);
+            },
+            eq: (col, val) => ({
+              maybeSingle: async () => {
+                const query = `?select=${columns}&${col}=eq.${val}&order=${column}.${options.ascending ? "asc" : "desc"}&limit=${n}`;
+                return self.request("GET", `/rest/v1/${table}${query}`);
+              },
+            }),
+          }),
+        }),
+      }),
+      update: (payload) => ({
+        eq: (column, value) => ({
+          eq: async (col2, val2) => {
+            const query = `?${column}=eq.${value}&${col2}=eq.${val2}`;
+            return self.request("PATCH", `/rest/v1/${table}${query}`, payload);
+          },
+        }),
+      }),
+    };
+  }
+
+  async auth_getUser(token) {
+    try {
+      const response = await fetch(`${this.url}/auth/v1/user`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        return { user: null, error: { message: "Não autenticado" } };
+      }
+
+      const user = await response.json();
+      return { user, error: null };
+    } catch (e) {
+      return { user: null, error: { message: e.message } };
+    }
+  }
+}
+
+serve(async (req) => {
+  console.log(`[CHAT-COACH] Requisição: ${req.method}`);
+
   if (req.method === "OPTIONS") {
-    console.log("[CHAT-COACH] Respondendo a OPTIONS");
     return new Response("ok", { headers: corsHeaders, status: 200 });
   }
 
   try {
-    // === VALIDAÇÃO DE AMBIENTE ===
+    // === VALIDAÇÃO ===
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
 
-    console.log("[CHAT-COACH] Validando variáveis de ambiente...");
-
-    if (!LOVABLE_API_KEY) {
-      console.error("[CHAT-COACH] LOVABLE_API_KEY não configurada");
+    if (!LOVABLE_API_KEY || !SUPABASE_URL || !SUPABASE_ANON_KEY) {
+      console.error("[CHAT-COACH] Variáveis de ambiente ausentes");
       return new Response(
-        JSON.stringify({
-          error: "LOVABLE_API_KEY não configurada",
-          details: "Verifique variáveis de ambiente no Supabase",
-        }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        JSON.stringify({ error: "Configuração incompleta" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-      console.error("[CHAT-COACH] Credenciais Supabase ausentes");
-      return new Response(
-        JSON.stringify({
-          error: "Credenciais Supabase incompletas",
-        }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
-    }
-
-    // === PARSE DO BODY ===
-    console.log("[CHAT-COACH] Parseando body da requisição...");
+    // === PARSE BODY ===
     let message = "";
     try {
-      const bodyJson = await req.json();
-      message = bodyJson?.message || "";
-    } catch (bodyErr) {
-      console.error("[CHAT-COACH] Erro ao fazer parse do body:", bodyErr);
+      const body = await req.json();
+      message = body?.message || "";
+    } catch (e) {
+      console.error("[CHAT-COACH] Erro ao parsear body:", e.message);
       return new Response(
-        JSON.stringify({
-          error: "Body JSON inválido",
-          details: bodyErr instanceof Error ? bodyErr.message : "Parse falhou",
-        }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        JSON.stringify({ error: "Body inválido" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     if (!message || typeof message !== "string") {
-      console.error("[CHAT-COACH] Mensagem ausente ou tipo inválido");
       return new Response(
-        JSON.stringify({ error: "Mensagem inválida ou ausente" }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        JSON.stringify({ error: "Mensagem inválida" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    console.log(
-      `[CHAT-COACH] Mensagem recebida: "${message.substring(0, 50)}..."`
-    );
+    console.log(`[CHAT-COACH] Mensagem: "${message.substring(0, 30)}..."`);
 
-    // === AUTENTICAÇÃO ===
-    console.log("[CHAT-COACH] Iniciando cliente Supabase...");
+    // === AUTENTICAÇÃO (100% Deno-native) ===
     const authHeader = req.headers.get("Authorization") ?? "";
-    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      global: {
-        headers: { Authorization: authHeader },
-      },
-    });
-
-    console.log("[CHAT-COACH] Autenticando usuário...");
-    const { data: userData, error: userErr } = await supabase.auth.getUser();
-
-    if (userErr || !userData?.user?.id) {
-      console.error("[CHAT-COACH] Erro de autenticação:", userErr?.message);
-      return new Response(JSON.stringify({ error: "Não autenticado" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: "Não autenticado" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
-    const userId = userData.user.id;
-    console.log(`[CHAT-COACH] ✅ Usuário autenticado: ${userId}`);
+    // Extrair token do header
+    const token = authHeader.replace("Bearer ", "");
 
-    // === CARREGAR CONTEXTO ===
-    console.log("[CHAT-COACH] Carregando contexto (plano, perfil, histórico)...");
-    let planoRow = null;
-    let profile = null;
-    let history = [];
+    // Chamar auth/v1/user direto (100% Deno-native)
+    console.log("[CHAT-COACH] Autenticando usuário...");
+    let userResponse;
+    try {
+      userResponse = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+        headers: { Authorization: authHeader },
+      });
+    } catch (e) {
+      console.error("[CHAT-COACH] Erro ao chamar auth endpoint:", e.message);
+      return new Response(
+        JSON.stringify({ error: "Erro de autenticação" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (!userResponse.ok) {
+      console.error("[CHAT-COACH] Usuário não autenticado");
+      return new Response(
+        JSON.stringify({ error: "Não autenticado" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const userData = await userResponse.json();
+    const userId = userData?.id;
+
+    if (!userId) {
+      console.error("[CHAT-COACH] User ID não encontrado");
+      return new Response(
+        JSON.stringify({ error: "User ID inválido" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log(`[CHAT-COACH] ✅ Autenticado: ${userId}`);
+
+    // === CARREGAR CONTEXTO (via REST API Supabase - 100% Deno-native) ===
+    console.log("[CHAT-COACH] Carregando contexto...");
+
+    let planoJson = null;
+    let profileData = null;
+    let historyData = [];
 
     // Plano
     try {
-      console.log("[CHAT-COACH] → Buscando plano ativo...");
-      const { data: pData, error: pErr } = await supabase
-        .from("planos_treino")
-        .select("plano_json")
-        .eq("user_id", userId)
-        .eq("ativo", true)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      const planoUrl = `${SUPABASE_URL}/rest/v1/planos_treino?select=plano_json&user_id=eq.${userId}&ativo=eq.true&order=created_at.desc&limit=1`;
+      const planoRes = await fetch(planoUrl, {
+        headers: {
+          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+          "Content-Type": "application/json",
+        },
+      });
 
-      if (pErr) {
-        console.error("[CHAT-COACH] Erro ao buscar plano:", pErr.message);
-      } else {
-        planoRow = pData;
-        console.log(
-          `[CHAT-COACH] → Plano: ${planoRow ? "✅ encontrado" : "❌ não encontrado"}`
-        );
+      if (planoRes.ok) {
+        const planoList = await planoRes.json();
+        if (planoList.length > 0) {
+          planoJson = planoList[0].plano_json;
+          console.log("[CHAT-COACH] ✅ Plano carregado");
+        }
       }
     } catch (e) {
-      console.error("[CHAT-COACH] Exceção ao carregar plano:", e);
+      console.error("[CHAT-COACH] Erro ao carregar plano:", e.message);
     }
 
     // Perfil
     try {
-      console.log("[CHAT-COACH] → Buscando perfil...");
-      const { data: prData, error: prErr } = await supabase
-        .from("profiles")
-        .select(
-          "name, nivel_corrida, dias_disponiveis, objetivo_principal, equipamentos_casa"
-        )
-        .eq("user_id", userId)
-        .maybeSingle();
+      const profileUrl = `${SUPABASE_URL}/rest/v1/profiles?select=name,nivel_corrida,dias_disponiveis,objetivo_principal,equipamentos_casa&user_id=eq.${userId}`;
+      const profileRes = await fetch(profileUrl, {
+        headers: {
+          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+          "Content-Type": "application/json",
+        },
+      });
 
-      if (prErr) {
-        console.error("[CHAT-COACH] Erro ao buscar perfil:", prErr.message);
-      } else {
-        profile = prData;
-        console.log(
-          `[CHAT-COACH] → Perfil: ${profile ? "✅ encontrado" : "❌ não encontrado"}`
-        );
+      if (profileRes.ok) {
+        const profileList = await profileRes.json();
+        if (profileList.length > 0) {
+          profileData = profileList[0];
+          console.log("[CHAT-COACH] ✅ Perfil carregado");
+        }
       }
     } catch (e) {
-      console.error("[CHAT-COACH] Exceção ao carregar perfil:", e);
+      console.error("[CHAT-COACH] Erro ao carregar perfil:", e.message);
     }
 
     // Histórico
     try {
-      console.log("[CHAT-COACH] → Buscando histórico de mensagens...");
-      const { data: hData, error: hErr } = await supabase
-        .from("mensagens_chat")
-        .select("role, content")
-        .eq("user_id", userId)
-        .order("created_at", { ascending: false })
-        .limit(10);
+      const historyUrl = `${SUPABASE_URL}/rest/v1/mensagens_chat?select=role,content&user_id=eq.${userId}&order=created_at.desc&limit=10`;
+      const historyRes = await fetch(historyUrl, {
+        headers: {
+          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+          "Content-Type": "application/json",
+        },
+      });
 
-      if (hErr) {
-        console.error("[CHAT-COACH] Erro ao buscar histórico:", hErr.message);
-      } else {
-        history = hData || [];
-        console.log(`[CHAT-COACH] → Histórico: ✅ ${history.length} mensagens`);
+      if (historyRes.ok) {
+        historyData = await historyRes.json();
+        console.log(`[CHAT-COACH] ✅ Histórico carregado: ${historyData.length} msgs`);
       }
     } catch (e) {
-      console.error("[CHAT-COACH] Exceção ao carregar histórico:", e);
+      console.error("[CHAT-COACH] Erro ao carregar histórico:", e.message);
     }
 
     // === MONTAR CONTEXTO ===
-    console.log("[CHAT-COACH] Montando contexto para a IA...");
-    const planoStr = planoRow?.plano_json
-      ? JSON.stringify(planoRow.plano_json).slice(0, 8000)
+    const planoStr = planoJson
+      ? JSON.stringify(planoJson).slice(0, 8000)
       : "Nenhum plano ativo.";
-    const profileStr = profile
-      ? JSON.stringify(profile)
+    const profileStr = profileData
+      ? JSON.stringify(profileData)
       : "Perfil não preenchido.";
 
-    const histAsc = (history ?? [])
+    const histAsc = (historyData || [])
       .slice()
       .reverse()
       .map((m) => ({
@@ -246,8 +333,7 @@ serve(async (req) => {
             properties: {
               novo_plano_json: {
                 type: "string",
-                description:
-                  "JSON string contendo o plano de treino atualizado, mantendo exatamente a estrutura de chaves original.",
+                description: "JSON string contendo o plano de treino atualizado.",
               },
             },
             required: ["novo_plano_json"],
@@ -257,7 +343,7 @@ serve(async (req) => {
     ];
 
     // === CHAMADA À IA ===
-    console.log("[CHAT-COACH] 🚀 Enviando requisição para IA gateway...");
+    console.log("[CHAT-COACH] 🚀 Chamando IA gateway...");
     const aiRes = await fetch(
       "https://ai.gateway.lovable.dev/v1/chat/completions",
       {
@@ -274,98 +360,65 @@ serve(async (req) => {
       }
     );
 
-    console.log(`[CHAT-COACH] ✅ Resposta da IA: HTTP ${aiRes.status}`);
+    console.log(`[CHAT-COACH] ✅ IA respondeu: HTTP ${aiRes.status}`);
 
     if (!aiRes.ok) {
       const text = await aiRes.text();
-      console.error(`[CHAT-COACH] ❌ Erro da IA (${aiRes.status}):`, text);
+      console.error(`[CHAT-COACH] ❌ Erro IA (${aiRes.status}):`, text);
 
       if (aiRes.status === 429) {
         return new Response(
-          JSON.stringify({
-            error: "Limite de uso atingido. Tente novamente em instantes.",
-          }),
-          {
-            status: 429,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
-        );
-      }
-
-      if (aiRes.status === 402) {
-        return new Response(
-          JSON.stringify({
-            error: "Créditos da IA esgotados. Adicione créditos no workspace.",
-          }),
-          {
-            status: 402,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
+          JSON.stringify({ error: "Limite atingido" }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
       return new Response(
-        JSON.stringify({
-          error: "Falha ao chamar a IA",
-          details: `Status ${aiRes.status}`,
-        }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        JSON.stringify({ error: "Falha ao chamar IA" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     const aiJson = await aiRes.json();
-    console.log("[CHAT-COACH] JSON da IA parseado com sucesso");
-
     const aiMessage = aiJson?.choices?.[0]?.message || {};
-
-    if (!aiMessage) {
-      console.error("[CHAT-COACH] aiMessage está vazio");
-      return new Response(
-        JSON.stringify({ error: "IA retornou resposta vazia" }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
-    }
-
     let finalReply = (aiMessage.content || "").trim() || "";
     const toolCalls = aiMessage.tool_calls || [];
 
     console.log(
-      `[CHAT-COACH] Resposta da IA: ${finalReply.length} chars, ${toolCalls.length} tool calls`
+      `[CHAT-COACH] Resposta: ${finalReply.length} chars, ${toolCalls.length} tools`
     );
 
     // === PROCESSAR TOOL CALLS ===
     if (toolCalls && toolCalls.length > 0) {
       console.log(`[CHAT-COACH] ⚙️ Processando ${toolCalls.length} tool call(s)...`);
+
       for (const toolCall of toolCalls) {
         if (toolCall?.function?.name === "atualizar_plano_treino") {
           try {
-            console.log("[CHAT-COACH] → Atualizando plano de treino...");
+            console.log("[CHAT-COACH] → Atualizando plano...");
             const argumentos = JSON.parse(toolCall.function.arguments || "{}");
             const novoPlamoJson = JSON.parse(
               argumentos.novo_plano_json || "{}"
             );
 
-            const { error: updateErr } = await supabase
-              .from("planos_treino")
-              .update({ plano_json: novoPlamoJson })
-              .eq("user_id", userId)
-              .eq("ativo", true);
+            // UPDATE via REST API (100% Deno-native)
+            const updateUrl = `${SUPABASE_URL}/rest/v1/planos_treino?user_id=eq.${userId}&ativo=eq.true`;
+            const updateRes = await fetch(updateUrl, {
+              method: "PATCH",
+              headers: {
+                Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+                "Content-Type": "application/json",
+                Prefer: "return=minimal",
+              },
+              body: JSON.stringify({ plano_json: novoPlamoJson }),
+            });
 
-            if (updateErr) {
-              console.error(
-                "[CHAT-COACH] Erro ao atualizar plano:",
-                updateErr.message
-              );
+            if (!updateRes.ok) {
+              console.error("[CHAT-COACH] Erro ao atualizar plano");
               finalReply =
-                "Não consegui atualizar seu plano agora. Tente novamente em instantes.";
+                "Erro ao atualizar plano. Tente novamente.";
             } else {
-              console.log("[CHAT-COACH] ✅ Plano atualizado com sucesso!");
+              console.log("[CHAT-COACH] ✅ Plano atualizado!");
 
               // Segunda chamada à IA
               const updatedMessages = [
@@ -374,12 +427,10 @@ serve(async (req) => {
                 {
                   role: "tool",
                   tool_call_id: toolCall.id || "",
-                  content:
-                    "Plano de treino atualizado com sucesso no banco de dados.",
+                  content: "Plano atualizado com sucesso.",
                 },
               ];
 
-              console.log("[CHAT-COACH] → Segunda chamada à IA para confirmação...");
               const aiRes2 = await fetch(
                 "https://ai.gateway.lovable.dev/v1/chat/completions",
                 {
@@ -401,39 +452,33 @@ serve(async (req) => {
                   aiJson2?.choices?.[0]?.message?.content || ""
                 ).trim();
                 if (!finalReply) {
-                  finalReply =
-                    "Plano atualizado com sucesso! Suas mudanças foram salvas.";
+                  finalReply = "Plano atualizado com sucesso!";
                 }
-                console.log("[CHAT-COACH] ✅ Segunda chamada concluída com sucesso");
               } else {
-                finalReply =
-                  "Plano atualizado com sucesso! Suas mudanças foram salvas.";
-                console.log("[CHAT-COACH] ⚠️ Segunda chamada retornou erro, usando fallback");
+                finalReply = "Plano atualizado com sucesso!";
               }
             }
           } catch (parseErr) {
-            console.error("[CHAT-COACH] Erro ao processar tool call:", parseErr);
-            finalReply =
-              "Houve um erro ao processar a atualização. Tente novamente.";
+            console.error("[CHAT-COACH] Erro ao processar tool:", parseErr);
+            finalReply = "Erro ao processar atualização.";
           }
         }
       }
     }
 
-    console.log("[CHAT-COACH] ✅ Retornando resposta final ao cliente");
+    console.log("[CHAT-COACH] ✅ Retornando resposta");
     return new Response(JSON.stringify({ reply: finalReply }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
-    console.error("[CHAT-COACH] ❌ ERRO CRÍTICO:", e);
+    console.error("[CHAT-COACH] ❌ ERRO CRÍTICO:", e.message);
     if (e instanceof Error) {
-      console.error("[CHAT-COACH] Stack trace:", e.stack);
-      console.error("[CHAT-COACH] Mensagem:", e.message);
+      console.error("[CHAT-COACH] Stack:", e.stack);
     }
     return new Response(
       JSON.stringify({
-        error: "Erro interno da Edge Function",
+        error: "Erro interno",
         details: e instanceof Error ? e.message : String(e),
       }),
       {
