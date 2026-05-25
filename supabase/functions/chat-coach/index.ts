@@ -40,14 +40,14 @@ serve(async (req) => {
 
   try {
     console.log("[3] Validando env vars");
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
 
-    if (!LOVABLE_API_KEY) {
-      console.error("[ERROR] LOVABLE_API_KEY ausente");
+    if (!GROQ_API_KEY) {
+      console.error("[ERROR] GROQ_API_KEY ausente");
       return new Response(
-        JSON.stringify({ error: "LOVABLE_API_KEY not configured" }),
+        JSON.stringify({ error: "GROQ_API_KEY not configured" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -184,29 +184,32 @@ serve(async (req) => {
       },
     ];
 
-    console.log("[12] Chamando IA gateway");
+    console.log("[12] Chamando Groq API");
     const aiRes = await fetch(
-      "https://ai.gateway.lovable.dev/v1/chat/completions",
+      "https://api.groq.com/openai/v1/chat/completions",
       {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          Authorization: `Bearer ${GROQ_API_KEY}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
+          model: "mixtral-8x7b-32768",
           messages,
           tools,
+          tool_choice: "auto",
+          temperature: 0.7,
+          max_tokens: 1024,
         }),
       }
     );
 
-    console.log(`[13] IA respondeu com status: ${aiRes.status}`);
+    console.log(`[13] Groq respondeu com status: ${aiRes.status}`);
 
     if (!aiRes.ok) {
       const errText = await aiRes.text();
-      console.error(`[ERROR] IA error ${aiRes.status}: ${errText}`);
-      
+      console.error(`[ERROR] Groq error ${aiRes.status}: ${errText}`);
+
       if (aiRes.status === 429) {
         return new Response(
           JSON.stringify({ error: "Rate limit exceeded" }),
@@ -215,18 +218,18 @@ serve(async (req) => {
       }
 
       return new Response(
-        JSON.stringify({ error: "IA call failed", details: errText }),
+        JSON.stringify({ error: "Groq call failed", details: errText }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    console.log("[14] Parseando resposta da IA");
+    console.log("[14] Parseando resposta do Groq");
     const aiJson = await aiRes.json();
     const aiMessage = aiJson?.choices?.[0]?.message || {};
     let finalReply = (aiMessage.content || "").trim() || "";
     const toolCalls = aiMessage.tool_calls || [];
 
-    console.log(`[15] IA response: reply=${finalReply.length} chars, toolCalls=${toolCalls.length}`);
+    console.log(`[15] Groq response: reply=${finalReply.length} chars, toolCalls=${toolCalls.length}`);
 
     if (toolCalls && toolCalls.length > 0) {
       console.log("[16] Processando tool calls");
@@ -254,7 +257,7 @@ serve(async (req) => {
               console.error(`[ERROR] Update failed: ${updateRes.status}`);
               finalReply = "Erro ao atualizar plano.";
             } else {
-              console.log("[18] Plano atualizado, segunda chamada à IA");
+              console.log("[18] Plano atualizado, segunda chamada ao Groq");
               const updatedMessages = [
                 ...messages,
                 { role: "assistant", content: aiMessage.content || "" },
@@ -266,16 +269,18 @@ serve(async (req) => {
               ];
 
               const aiRes2 = await fetch(
-                "https://ai.gateway.lovable.dev/v1/chat/completions",
+                "https://api.groq.com/openai/v1/chat/completions",
                 {
                   method: "POST",
                   headers: {
-                    Authorization: `Bearer ${LOVABLE_API_KEY}`,
+                    Authorization: `Bearer ${GROQ_API_KEY}`,
                     "Content-Type": "application/json",
                   },
                   body: JSON.stringify({
-                    model: "google/gemini-2.5-flash",
+                    model: "mixtral-8x7b-32768",
                     messages: updatedMessages,
+                    temperature: 0.7,
+                    max_tokens: 512,
                   }),
                 }
               );
