@@ -43,42 +43,67 @@ function AppLayout() {
   useEffect(() => {
     let isMounted = true;
 
-    async function checkAuth() {
-      // 1. Pega a sessão atual de forma assíncrona
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!isMounted) return;
-
-      if (!session) {
-        setAuthed(false);
+    // Força o aplicativo a destravar em 4 segundos caso o Supabase demore a responder
+    const safetyTimeout = setTimeout(() => {
+      if (isMounted && !ready) {
+        console.warn("⚠️ Timeout de segurança disparado. Destravando carregamento.");
         setReady(true);
-        return;
       }
+    }, 4000);
 
-      // 2. Se há sessão, busca o perfil com segurança
+    async function checkAuth() {
       try {
-        const userProfile = await getProfile();
-        if (isMounted) {
-          setAuthed(true);
-          setProfile(userProfile);
+        console.log("🔍 Verificando sessão do Supabase...");
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (!isMounted) return;
+
+        if (!session) {
+          console.log("❌ Nenhuma sessão ativa encontrada.");
+          setAuthed(false);
+          setReady(true);
+          return;
         }
+
+        console.log("✅ Sessão encontrada! Buscando perfil...");
+        setAuthed(true);
+
+        // Busca o perfil com uma trava de erro isolada para não travar o app inteiro
+        try {
+          const userProfile = await getProfile();
+          console.log("👤 Perfil carregado com sucesso:", userProfile);
+          if (isMounted) setProfile(userProfile);
+        } catch (profileError) {
+          console.error("🚨 Erro crítico ao rodar getProfile():", profileError);
+          // Mesmo dando erro no perfil, define como pronto para não congelar a tela
+        }
+
       } catch (err) {
-        console.error("Erro ao carregar perfil:", err);
+        console.error("🚨 Erro na verificação de autenticação:", err);
       } finally {
-        if (isMounted) setReady(true);
+        if (isMounted) {
+          setReady(true);
+          clearTimeout(safetyTimeout);
+        }
       }
     }
 
     checkAuth();
 
-    // 3. OUVINTE DE ESTADO DO SUPABASE: Evita que o F5 quebre a sessão ativa
+    // Ouvinte de estado do Supabase
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log(`🔔 Evento de Auth do Supabase: ${event}`);
       if (!isMounted) return;
+      
       if (session) {
         setAuthed(true);
         if (!profile) {
-          const userProfile = await getProfile();
-          if (isMounted) setProfile(userProfile);
+          try {
+            const userProfile = await getProfile();
+            if (isMounted) setProfile(userProfile);
+          } catch (e) {
+            console.error("🚨 Erro ao atualizar perfil no onBorderChange:", e);
+          }
         }
       } else {
         setAuthed(false);
@@ -89,10 +114,11 @@ function AppLayout() {
     return () => {
       isMounted = false;
       subscription.unsubscribe();
+      clearTimeout(safetyTimeout);
     };
   }, []);
 
-  // Tela de carregamento amigável enquanto o Supabase autentica no F5 (Impede o "Not Found")
+  // Tela de carregamento amigável
   if (!ready) {
     return (
       <div className="flex min-h-screen w-full items-center justify-center bg-[#040405] text-zinc-400 font-mono text-xs">
@@ -104,9 +130,13 @@ function AppLayout() {
     );
   }
 
-  // Redirecionamentos seguros após a confirmação real do estado de Auth
+  // Redirecionamentos após a checagem
   if (!authed) return <Navigate to="/" />;
-  if (!profile?.onboarding_completed) return <Navigate to="/onboarding" />;
+  
+  // Se o perfil deu erro ou não veio, evita quebrar a tela e deixa passar para checar
+  if (profile && !profile.onboarding_completed) {
+    return <Navigate to="/onboarding" />;
+  }
 
   return (
     <SidebarProvider>
@@ -126,7 +156,7 @@ function AppLayout() {
                   Musculação
                 </span>
                 <span className="rounded-full bg-energy-soft px-2.5 py-1 font-medium text-energy">
-                  Objetivo: {OBJ_LABEL[profile.objetivo_principal ?? ""] ?? "—"}
+                  Objetivo: {profile ? (OBJ_LABEL[profile.objetivo_principal ?? ""] ?? "—") : "Geral"}
                 </span>
               </div>
             </div>
