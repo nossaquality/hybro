@@ -32,29 +32,6 @@ DIRETRIZES CRÍTICAS:
    - Não invente exercícios fora do plano sem justificar.
    - Respostas curtas a médias (~6 parágrafos máx). Use markdown leve quando ajudar.`;
 
-interface ToolCall {
-  id: string;
-  type: string;
-  function: {
-    name: string;
-    arguments: string;
-  };
-}
-
-interface AIMessage {
-  role: string;
-  content?: string;
-  tool_calls?: ToolCall[];
-}
-
-interface AIChoice {
-  message: AIMessage;
-}
-
-interface AIResponse {
-  choices: AIChoice[];
-}
-
 serve(async (req) => {
   // CORS: Intercepta OPTIONS com status 200 imediato
   if (req.method === "OPTIONS") {
@@ -89,7 +66,8 @@ serve(async (req) => {
     }
     const userId = userData.user.id;
 
-    const { message } = await req.json();
+    const bodyJson = await req.json();
+    const { message } = bodyJson || {};
     if (!message || typeof message !== "string") {
       return new Response(
         JSON.stringify({ error: "Mensagem inválida" }),
@@ -132,16 +110,24 @@ serve(async (req) => {
     const profileStr = profile
       ? JSON.stringify(profile)
       : "Perfil não preenchido.";
-    const histAsc = (history ?? []).slice().reverse();
+
+    // Mapeamento do histórico com fallback para strings vazias
+    const histAsc = (history ?? [])
+      .slice()
+      .reverse()
+      .map((m) => ({
+        role: m?.role || "user",
+        content: m?.content || "",
+      }));
 
     // === Primeira chamada à IA com tools ===
-    const messages: any[] = [
+    const messages = [
       { role: "system", content: SYSTEM_PROMPT },
       {
         role: "system",
         content: `Contexto do atleta:\nPerfil: ${profileStr}\n\nPlano de treino ativo (JSON):\n${planoStr}`,
       },
-      ...histAsc.map((m: any) => ({ role: m.role, content: m.content })),
+      ...histAsc,
       { role: "user", content: message },
     ];
 
@@ -215,8 +201,8 @@ serve(async (req) => {
       });
     }
 
-    const aiJson: AIResponse = await aiRes.json();
-    const aiMessage: AIMessage = aiJson?.choices?.[0]?.message;
+    const aiJson = await aiRes.json();
+    const aiMessage = aiJson?.choices?.[0]?.message || {};
 
     if (!aiMessage) {
       return new Response(
@@ -228,17 +214,19 @@ serve(async (req) => {
       );
     }
 
-    let finalReply = aiMessage.content?.trim() || "";
-    const toolCalls = aiMessage.tool_calls;
+    let finalReply = (aiMessage.content || "").trim() || "";
+    const toolCalls = aiMessage.tool_calls || [];
 
     // === Se há tool_calls, processa a atualização ===
     if (toolCalls && toolCalls.length > 0) {
       for (const toolCall of toolCalls) {
-        if (toolCall.function.name === "atualizar_plano_treino") {
+        if (toolCall?.function?.name === "atualizar_plano_treino") {
           try {
             // Parse seguro dos argumentos
-            const argumentos = JSON.parse(toolCall.function.arguments);
-            const novoPlamoJson = JSON.parse(argumentos.novo_plano_json);
+            const argumentos = JSON.parse(toolCall.function.arguments || "{}");
+            const novoPlamoJson = JSON.parse(
+              argumentos.novo_plano_json || "{}"
+            );
 
             // Atualiza no banco de dados
             const { error: updateErr } = await supabase
@@ -258,8 +246,9 @@ serve(async (req) => {
                 { role: "assistant", content: aiMessage.content || "" },
                 {
                   role: "tool",
-                  tool_call_id: toolCall.id,
-                  content: "Plano de treino atualizado com sucesso no banco de dados.",
+                  tool_call_id: toolCall.id || "",
+                  content:
+                    "Plano de treino atualizado com sucesso no banco de dados.",
                 },
               ];
 
@@ -279,10 +268,14 @@ serve(async (req) => {
               );
 
               if (aiRes2.ok) {
-                const aiJson2: AIResponse = await aiRes2.json();
-                finalReply =
-                  aiJson2?.choices?.[0]?.message?.content?.trim() ||
-                  "Plano atualizado com sucesso!";
+                const aiJson2 = await aiRes2.json();
+                finalReply = (
+                  aiJson2?.choices?.[0]?.message?.content || ""
+                ).trim();
+                if (!finalReply) {
+                  finalReply =
+                    "Plano atualizado com sucesso! Suas mudanças foram salvas.";
+                }
               } else {
                 finalReply =
                   "Plano atualizado com sucesso! Suas mudanças foram salvas.";
@@ -303,7 +296,11 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
-    console.error("chat-coach error:", e);
+    console.error("Erro interno detalhado na execução:", e);
+    if (e instanceof Error) {
+      console.error("Stack trace:", e.stack);
+      console.error("Mensagem:", e.message);
+    }
     return new Response(
       JSON.stringify({
         error: e instanceof Error ? e.message : "Erro desconhecido",
