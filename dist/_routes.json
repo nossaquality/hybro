@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "routes": [
+    {
+      "path": "/app/*",
+      "headers": {
+        "Cache-Control": "no-store, no-cache, must-revalidate"
+      }
+    },
+    {
+      "path": "/*",
+      "headers": {
+        "Cache-Control": "no-store, no-cache, must-revalidate"
+      }
+    }
+  ]
+}
