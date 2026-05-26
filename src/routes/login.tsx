@@ -79,18 +79,21 @@ function LoginPage() {
   }
 
   async function handleOAuth(provider: "google") {
-    setOauthLoading(provider);
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider,
-        options: { redirectTo: `${window.location.origin}/` },
-      });
-      if (error) throw error;
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : `Erro ao entrar com ${provider}`);
-      setOauthLoading(null);
-    }
+  setOauthLoading(provider);
+  try {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: { 
+        redirectTo: `${window.location.origin}/`, 
+        skipBrowserRedirect: false 
+      },
+    });
+    if (error) throw error;
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : `Erro ao entrar com ${provider}`);
+    setOauthLoading(null);
   }
+}
 
   return (
     <div className="flex min-h-screen flex-col justify-between bg-[#040405] text-zinc-200 font-sans selection:bg-amber-500/30 antialiased relative overflow-hidden px-6 py-8">
