@@ -121,7 +121,7 @@ function AppLayout() {
   // Tela de carregamento amigável
   if (!ready) {
     return (
-      <div className="flex min-h-screen w-full items-center justify-center bg-[#040405] text-zinc-400 font-mono text-xs">
+      <div className="flex min-h-screen w-full items-center justify-center bg-background text-muted-foreground font-mono text-xs">
         <div className="flex flex-col items-center gap-3">
           <div className="h-4 w-4 animate-spin rounded-full border-2 border-amber-500 border-t-transparent" />
           <span>Sincronizando perfil híbrido...</span>
