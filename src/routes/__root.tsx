@@ -4,7 +4,7 @@ import {
   Outlet,
   Link,
   createRootRouteWithContext,
-  useRouter,
+  Navigate,
 } from "@tanstack/react-router";
 import { Toaster } from "@/components/ui/sonner";
 import "../styles.css";
@@ -28,32 +28,9 @@ function NotFoundComponent() {
   );
 }
 
-function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
+function ErrorComponent({ error }: { error: Error; reset: () => void }) {
   console.error(error);
-  const router = useRouter();
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="max-w-md text-center">
-        <h1 className="text-xl font-semibold tracking-tight text-foreground">
-          Algo deu errado
-        </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Ocorreu um erro inesperado. Tente recarregar a página.
-        </p>
-        <div className="mt-6 flex flex-wrap justify-center gap-2">
-          <button
-            onClick={() => { router.invalidate(); reset(); }}
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-          >
-            Tentar novamente
-          </button>
-          <a href="/" className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent">
-            Ir para início
-          </a>
-        </div>
-      </div>
-    </div>
-  );
+  return <Navigate to="/" />;
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
