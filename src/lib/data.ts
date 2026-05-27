@@ -79,14 +79,15 @@ export async function getTodayProgress(): Promise<Record<string, ProgressoEntry>
 
 export async function saveProgress(taskId: string, completed: boolean, esforco?: Esforco) {
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return;
+  if (!user) throw new Error("Usuário não autenticado");
   const today = new Date().toISOString().slice(0, 10);
-  await supabase
+  const { error } = await supabase
     .from("progresso_diario")
     .upsert(
       { user_id: user.id, data: today, task_id: taskId, completed, esforco: esforco ?? null },
       { onConflict: "user_id,data,task_id" },
     );
+  if (error) throw error;
 }
 
 export async function getChatMessages() {
@@ -105,4 +106,25 @@ export function getTodayIndex(): number {
   // JS: 0=Sunday..6=Saturday. Convert to Mon=0..Sun=6.
   const js = new Date().getDay();
   return (js + 6) % 7;
+}
+
+/** Retorna todos os dias do mês atual que têm ao menos 1 tarefa concluída */
+export async function getMonthProgress(): Promise<Set<string>> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return new Set();
+  const now = new Date();
+  const firstDay = new Date(now.getFullYear(), now.getMonth(), 1)
+    .toISOString()
+    .slice(0, 10);
+  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+    .toISOString()
+    .slice(0, 10);
+  const { data } = await supabase
+    .from("progresso_diario")
+    .select("data")
+    .eq("user_id", user.id)
+    .eq("completed", true)
+    .gte("data", firstDay)
+    .lte("data", lastDay);
+  return new Set((data ?? []).map((r) => r.data));
 }
