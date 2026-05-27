@@ -6,7 +6,7 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const SYSTEM_PROMPT = `Você é um Treinador Híbrido de Elite, especialista em concurrent training (corrida + musculação), inspirado em Alex Viada. Seu papel é ser o parceiro mais experiente do atleta, orientando treinos, recuperação e performance.
+const SYSTEM_PROMPT = `Você é um Treinador Híbrido de Elite, especialista em concurrent training (corrida + musculação), inspirado em Alex Viada. Seu papel é ser o parceiro mais experiente do[...]
 
 DIRETRIZES CRÍTICAS:
 
@@ -84,7 +84,10 @@ serve(async (req) => {
 
     console.log("[6] Autenticando usuário via REST");
     const authRes = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
-      headers: { Authorization: authHeader },
+      headers: {
+        Authorization: authHeader,
+        apikey: SUPABASE_ANON_KEY,
+      },
     });
 
     if (!authRes.ok) {
