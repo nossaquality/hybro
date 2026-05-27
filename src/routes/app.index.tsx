@@ -16,6 +16,7 @@ import {
   getTodayIndex,
   getTodayProgress,
   saveProgress,
+  getMonthProgress,
   type Esforco,
   type ProgressoEntry,
 } from "@/lib/data";
@@ -76,14 +77,16 @@ const ESFORCOS: { id: Esforco; emoji: string; desc: string }[] = [
 function Today() {
   const [plano, setPlano] = useState<PlanoTreino | null>(null);
   const [log, setLog] = useState<Record<string, ProgressoEntry>>({});
+  const [monthDone, setMonthDone] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [effortFor, setEffortFor] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
-      const [p, l] = await Promise.all([getActivePlan(), getTodayProgress()]);
+      const [p, l, m] = await Promise.all([getActivePlan(), getTodayProgress(), getMonthProgress()]);
       setPlano(p);
       setLog(l);
+      setMonthDone(m);
       setLoading(false);
     })();
   }, []);
@@ -232,6 +235,9 @@ function Today() {
         </Card>
       </div>
 
+      {/* Calendário Mensal de Progresso */}
+      <MonthCalendar doneDays={monthDone} />
+
       {/* Task cards — Apple Fitness style */}
       <div className="space-y-3">
         {today.tarefas.map((task) => {
@@ -344,5 +350,64 @@ function Today() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+function MonthCalendar({ doneDays }: { doneDays: Set<string> }) {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  const todayStr = now.toISOString().slice(0, 10);
+
+  const monthName = now.toLocaleString("pt-BR", { month: "long", year: "numeric" });
+  const firstDow = new Date(year, month, 1).getDay(); // 0=Dom
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  // Preencher com células vazias para alinhar a semana (Dom=0)
+  const cells: (number | null)[] = [
+    ...Array(firstDow).fill(null),
+    ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
+  ];
+
+  return (
+    <Card className="rounded-3xl border-border/50 p-5 shadow-sm mb-6">
+      <h2 className="text-sm font-semibold capitalize text-muted-foreground mb-3">
+        {monthName}
+      </h2>
+      {/* Cabeçalho dias da semana */}
+      <div className="grid grid-cols-7 text-center mb-1">
+        {["D", "S", "T", "Q", "Q", "S", "S"].map((d, i) => (
+          <span key={i} className="text-[10px] font-semibold text-muted-foreground py-1">
+            {d}
+          </span>
+        ))}
+      </div>
+      {/* Células dos dias */}
+      <div className="grid grid-cols-7 gap-y-1 text-center">
+        {cells.map((day, i) => {
+          if (!day) return <span key={`e-${i}`} />;
+          const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+          const isDone = doneDays.has(dateStr);
+          const isToday = dateStr === todayStr;
+          return (
+            <div key={dateStr} className="flex items-center justify-center py-0.5">
+              <span
+                className={cn(
+                  "flex h-7 w-7 items-center justify-center rounded-full text-xs font-medium transition-colors",
+                  isDone && "bg-primary text-primary-foreground font-semibold",
+                  isToday && !isDone && "ring-2 ring-primary text-primary font-semibold",
+                  !isDone && !isToday && "text-muted-foreground hover:bg-muted",
+                )}
+              >
+                {day}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+      <p className="mt-3 text-xs text-muted-foreground">
+        🟢 Dias com ao menos 1 treino marcado como concluído
+      </p>
+    </Card>
   );
 }
