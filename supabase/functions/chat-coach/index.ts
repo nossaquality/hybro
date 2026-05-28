@@ -264,12 +264,29 @@ serve(async (req) => {
 
     if (toolCalls && toolCalls.length > 0) {
       console.log("[16] Processando tool calls");
+      
       for (const toolCall of toolCalls) {
         if (toolCall?.function?.name === "atualizar_plano_treino") {
           try {
             console.log("[17] Atualizando plano");
             const argumentos = JSON.parse(toolCall.function.arguments || "{}");
-            const novoPlamoJson = JSON.parse(argumentos.novo_plano_json || "{}");
+            let novoPlanoJson;
+
+            // Proteção contra JSON inválido
+            try {
+              novoPlanoJson = typeof argumentos.novo_plano_json === "string" 
+                ? JSON.parse(argumentos.novo_plano_json) 
+                : argumentos.novo_plano_json;
+            } catch (e) {
+              console.error("JSON do plano inválido");
+              finalReply = "Erro ao processar o novo plano. Tente novamente.";
+              continue;
+            }
+
+            if (!novoPlanoJson || typeof novoPlanoJson !== "object") {
+              finalReply = "Erro: plano gerado inválido.";
+              continue;
+            }
 
             const updateRes = await fetch(
               `${SUPABASE_URL}/rest/v1/planos_treino?user_id=eq.${userId}&ativo=eq.true`,
@@ -280,57 +297,21 @@ serve(async (req) => {
                   "Content-Type": "application/json",
                   Prefer: "return=minimal",
                 },
-                body: JSON.stringify({ plano_json: novoPlamoJson }),
+                body: JSON.stringify({ plano_json: novoPlanoJson }),
               }
             );
 
             if (!updateRes.ok) {
-              console.error(`[ERROR] Update failed: ${updateRes.status}`);
-              finalReply = "Erro ao atualizar plano.";
+              const errorText = await updateRes.text();
+              console.error(`[ERROR] Update failed: ${updateRes.status} - ${errorText}`);
+              finalReply = "Não consegui atualizar o plano no momento. Tente novamente.";
             } else {
-              console.log("[18] Plano atualizado, segunda chamada ao Groq");
-              const updatedMessages = [
-                ...messages,
-                { role: "assistant", content: aiMessage.content || "" },
-                {
-                  role: "tool",
-                  tool_call_id: toolCall.id || "",
-                  content: "Plano atualizado com sucesso.",
-                },
-              ];
-
-              const aiRes2 = await fetch(
-                "https://api.groq.com/openai/v1/chat/completions",
-                {
-                  method: "POST",
-                  headers: {
-                    Authorization: `Bearer ${GROQ_API_KEY}`,
-                    "Content-Type": "application/json",
-                  },
-                  body: JSON.stringify({
-                    model: "llama-3.3-70b-versatile",
-                    messages: updatedMessages,
-                    temperature: 0.7,
-                    max_tokens: 512,
-                  }),
-                }
-              );
-
-              if (aiRes2.ok) {
-                const aiJson2 = await aiRes2.json();
-                finalReply = (aiJson2?.choices?.[0]?.message?.content || "").trim();
-                if (!finalReply) {
-                  finalReply = "Plano atualizado com sucesso!";
-                }
-                console.log("[19] Segunda chamada concluída");
-              } else {
-                finalReply = "Plano atualizado com sucesso!";
-                console.log("[19] Segunda chamada falhou, usando fallback");
-              }
+              console.log("[18] Plano atualizado com sucesso");
+              finalReply = "Plano atualizado com sucesso! Fiz os ajustes necessários.";
             }
           } catch (e) {
             console.error(`[ERROR] Tool call error: ${e.message}`);
-            finalReply = "Erro ao processar atualização.";
+            finalReply = "Ocorreu um erro ao tentar atualizar o plano.";
           }
         }
       }
