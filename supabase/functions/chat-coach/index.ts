@@ -197,7 +197,7 @@ serve(async (req) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "mixtral-8x7b-32768",
+          model: "llama-3.3-70b-versatile",
           messages,
           tools,
           tool_choice: "auto",
@@ -280,7 +280,7 @@ serve(async (req) => {
                     "Content-Type": "application/json",
                   },
                   body: JSON.stringify({
-                    model: "mixtral-8x7b-32768",
+                    model: "llama-3.3-70b-versatile",
                     messages: updatedMessages,
                     temperature: 0.7,
                     max_tokens: 512,
