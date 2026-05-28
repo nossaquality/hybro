@@ -92,46 +92,66 @@ export async function gerarPlano(input: {
   return plano;
 }
 
-// ====================== CHAT COACH INTERLIGADO (IA REAL LIMPA) ======================
+// ====================== CHAT COACH ======================
 export async function chatCoach(input: { message: string }) {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error("Usuário não autenticado");
-  const userId = user.id;
+  const { data: { session } } = await supabase.auth.getSession();
+  
+  if (!session?.access_token) {
+    throw new Error("Usuário não autenticado");
+  }
 
-  // 1. Salva a mensagem que você digitou no banco de dados
+  const userId = session.user.id;
+
+  // 1. Salva mensagem do usuário
   const { error: userMsgError } = await supabase
     .from("mensagens_chat")
     .insert({ user_id: userId, role: "user", content: input.message });
+
   if (userMsgError) throw userMsgError;
 
-  let reply = "";
-  let fallback = false;
-
   try {
-    // 2. Chama a Edge Function na nuvem para pegar a resposta da IA real
+    // 2. Chama a Edge Function com token explícito
     const { data, error: fnError } = await supabase.functions.invoke("chat-coach", {
       body: { message: input.message },
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+      },
     });
 
     if (fnError || !data?.reply) {
-      console.error("Erro retornado da Edge Function:", fnError, data);
-      reply = "⚠️ O servidor da IA recusou a conexão ou demorou para responder. Verifique os logs no Supabase.";
-      fallback = true;
-    } else {
-      // Sucesso! A IA real respondeu
-      reply = data.reply;
+      console.error("Erro da Edge Function:", fnError);
+      const reply = "⚠️ O servidor da IA recusou a conexão. Tente novamente.";
+      
+      await supabase.from("mensagens_chat").insert({
+        user_id: userId,
+        role: "assistant",
+        content: reply,
+      });
+      
+      return { reply };
     }
+
+    const reply = data.reply;
+
+    // 3. Salva resposta da IA
+    await supabase.from("mensagens_chat").insert({
+      user_id: userId,
+      role: "assistant",
+      content: reply,
+    });
+
+    return { reply };
+
   } catch (e) {
-    console.error("Exceção de rede no chat:", e);
-    reply = "⚠️ Erro de comunicação com o servidor do Chat Coach.";
-    fallback = true;
+    console.error("Erro ao chamar chat-coach:", e);
+    const reply = "Erro de comunicação com o treinador IA.";
+
+    await supabase.from("mensagens_chat").insert({
+      user_id: userId,
+      role: "assistant",
+      content: reply,
+    });
+
+    return { reply };
   }
-
-  // 3. Salva a resposta da IA (ou o erro) no banco para mostrar na tela
-  const { error: aiMsgError } = await supabase
-    .from("mensagens_chat")
-    .insert({ user_id: userId, role: "assistant", content: reply });
-  if (aiMsgError) throw aiMsgError;
-
-  return { reply, fallback };
 }
