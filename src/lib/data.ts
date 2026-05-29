@@ -3,13 +3,12 @@ import type { PlanoTreino } from "./plan-types";
 
 export type Esforco = "Facil" | "Medio" | "Dificil";
 
-export interface ProgressoEntry {
-  task_id: string;
-  data: string;
-  completed: boolean;
-  esforco?: Esforco | null;
-  mood?: string | null;
-}
+export type SubscriptionStatus =
+  | "trialing"
+  | "active"
+  | "past_due"
+  | "canceled"
+  | "incomplete";
 
 export interface Profile {
   user_id: string;
@@ -19,6 +18,12 @@ export interface Profile {
   objetivo_principal: string | null;
   equipamentos_casa: string[] | null;
   onboarding_completed: boolean;
+  // Billing
+  subscription_status: SubscriptionStatus | null;
+  trial_ends_at: string | null;
+  stripe_customer_id: string | null;
+  stripe_subscription_id: string | null;
+  current_period_end: string | null;
 }
 
 let memoryProfile: Profile | null = null;
@@ -128,3 +133,4 @@ export async function getMonthProgress(): Promise<Set<string>> {
     .lte("data", lastDay);
   return new Set((data ?? []).map((r) => r.data));
 }
+
