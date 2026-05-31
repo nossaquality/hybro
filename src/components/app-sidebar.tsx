@@ -11,7 +11,16 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { Activity, CalendarDays, Footprints, Dumbbell, Sparkles, Home, LogOut, UserCircle2, Wind } from "lucide-react";
+import {
+  Activity,
+  CalendarDays,
+  Footprints,
+  Dumbbell,
+  Sparkles,
+  Home,
+  LogOut,
+  Settings,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 const items = [
@@ -19,9 +28,7 @@ const items = [
   { title: "Calendário Semanal", url: "/app/calendar", icon: CalendarDays },
   { title: "Planilha · Corrida", url: "/app/running", icon: Footprints },
   { title: "Planilha · Musculação", url: "/app/strength", icon: Dumbbell },
-  { title: "Mobilidade & Pliometria", url: "/app/mobility", icon: Wind },
   { title: "Chat com Treinador IA", url: "/app/coach", icon: Sparkles },
-  { title: "Meu Perfil", url: "/app/profile", icon: UserCircle2 },
 ];
 
 export function AppSidebar() {
@@ -32,16 +39,19 @@ export function AppSidebar() {
     <Sidebar collapsible="icon">
       <SidebarHeader>
         <div className="flex items-center gap-2 px-2 py-2">
-          <Activity className="h-5 w-5" />
+          <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground">
+            <Activity className="h-5 w-5" />
+          </div>
           <div className="flex flex-col leading-tight">
-            <span className="text-base font-semibold tracking-tight">HYBRO IA</span>
-            <span className="text-xs text-muted-foreground">Seu Treino Híbrido inteligente</span>
+            <span className="text-base font-semibold tracking-tight">HYBRO</span>
+            <span className="text-xs text-muted-foreground">Corrida + Força</span>
           </div>
         </div>
       </SidebarHeader>
+
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Menu</SidebarGroupLabel>
+          <SidebarGroupLabel>Menu Principal</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {items.map((item) => {
@@ -49,6 +59,7 @@ export function AppSidebar() {
                   item.url === "/app"
                     ? pathname === "/app" || pathname === "/app/"
                     : pathname.startsWith(item.url);
+
                 return (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton asChild isActive={active}>
@@ -63,7 +74,46 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {/* Botão Conectar Strava */}
+        <SidebarGroup>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  className="bg-[#FC4C02] hover:bg-[#e64402] text-white font-medium rounded-xl h-11"
+                >
+                  <Link
+                    to="/app/settings"
+                    className="flex items-center justify-center gap-2"
+                  >
+                    <span className="text-sm">🔗 Conectar Strava</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* Configurações */}
+        <SidebarGroup>
+          <SidebarGroupLabel>Ferramentas</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <Link to="/app/settings" className="flex items-center gap-2">
+                    <Settings className="h-4 w-4" />
+                    <span>Configurações</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
       </SidebarContent>
+
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
