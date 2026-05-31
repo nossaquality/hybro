@@ -43,90 +43,138 @@ export type Database = {
           ativo: boolean
           created_at: string
           id: string
-          plano: Json
+          plano: Json | null
+          plano_json: Json
           user_id: string
         }
         Insert: {
           ativo?: boolean
           created_at?: string
           id?: string
-          plano: Json
+          plano?: Json | null
+          plano_json: Json
           user_id: string
         }
         Update: {
           ativo?: boolean
           created_at?: string
           id?: string
-          plano?: Json
+          plano?: Json | null
+          plano_json?: Json
           user_id?: string
         }
         Relationships: []
       }
       profiles: {
         Row: {
-          created_at: string
-          dias_disponiveis: number | null
+          dias_disponiveis: number[] | null
           equipamentos_casa: string[] | null
+          id: string
           name: string | null
           nivel_corrida: string | null
           objetivo_principal: string | null
-          onboarding_completed: boolean
+          onboarding_completed: boolean | null
           updated_at: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
-          created_at?: string
-          dias_disponiveis?: number | null
+          dias_disponiveis?: number[] | null
           equipamentos_casa?: string[] | null
+          id: string
           name?: string | null
           nivel_corrida?: string | null
           objetivo_principal?: string | null
-          onboarding_completed?: boolean
+          onboarding_completed?: boolean | null
           updated_at?: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
-          created_at?: string
-          dias_disponiveis?: number | null
+          dias_disponiveis?: number[] | null
           equipamentos_casa?: string[] | null
+          id?: string
           name?: string | null
           nivel_corrida?: string | null
           objetivo_principal?: string | null
-          onboarding_completed?: boolean
+          onboarding_completed?: boolean | null
           updated_at?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: []
       }
       progresso_diario: {
         Row: {
-          completed: boolean
-          created_at: string
-          data: string
+          completed: boolean | null
+          concluido: boolean
+          data: string | null
+          data_treino: string
+          descricao_tarefa: string
           esforco: string | null
           id: string
           mood: string | null
-          task_id: string
+          task_id: string | null
+          tipo_treino: string
+          updated_at: string
           user_id: string
         }
         Insert: {
-          completed?: boolean
-          created_at?: string
-          data?: string
+          completed?: boolean | null
+          concluido?: boolean
+          data?: string | null
+          data_treino?: string
+          descricao_tarefa: string
           esforco?: string | null
           id?: string
           mood?: string | null
-          task_id: string
+          task_id?: string | null
+          tipo_treino: string
+          updated_at?: string
           user_id: string
         }
         Update: {
-          completed?: boolean
-          created_at?: string
-          data?: string
+          completed?: boolean | null
+          concluido?: boolean
+          data?: string | null
+          data_treino?: string
+          descricao_tarefa?: string
           esforco?: string | null
           id?: string
           mood?: string | null
-          task_id?: string
+          task_id?: string | null
+          tipo_treino?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      strava_tokens: {
+        Row: {
+          access_token: string
+          athlete_id: number | null
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          refresh_token: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          access_token: string
+          athlete_id?: number | null
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          refresh_token?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          access_token?: string
+          athlete_id?: number | null
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          refresh_token?: string | null
+          updated_at?: string | null
           user_id?: string
         }
         Relationships: []

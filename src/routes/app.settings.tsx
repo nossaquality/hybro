@@ -16,7 +16,7 @@ function SettingsPage() {
 
   async function handleConnect() {
     try {
-      const { authUrl } = await connect({ data: {} });
+      const { authUrl } = await connect({});
       window.location.href = authUrl;
     } catch (err) {
       toast.error("Erro ao conectar com Strava");

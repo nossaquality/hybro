@@ -15,11 +15,13 @@ import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppIndexRouteImport } from './routes/app.index'
 import { Route as AppStrengthRouteImport } from './routes/app.strength'
+import { Route as AppSettingsRouteImport } from './routes/app.settings'
 import { Route as AppRunningRouteImport } from './routes/app.running'
 import { Route as AppProfileRouteImport } from './routes/app.profile'
 import { Route as AppMobilityRouteImport } from './routes/app.mobility'
 import { Route as AppCoachRouteImport } from './routes/app.coach'
 import { Route as AppCalendarRouteImport } from './routes/app.calendar'
+import { Route as AuthStravaCallbackRouteImport } from './routes/auth.strava.callback'
 
 const OnboardingRoute = OnboardingRouteImport.update({
   id: '/onboarding',
@@ -51,6 +53,11 @@ const AppStrengthRoute = AppStrengthRouteImport.update({
   path: '/strength',
   getParentRoute: () => AppRoute,
 } as any)
+const AppSettingsRoute = AppSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppRunningRoute = AppRunningRouteImport.update({
   id: '/running',
   path: '/running',
@@ -76,6 +83,11 @@ const AppCalendarRoute = AppCalendarRouteImport.update({
   path: '/calendar',
   getParentRoute: () => AppRoute,
 } as any)
+const AuthStravaCallbackRoute = AuthStravaCallbackRouteImport.update({
+  id: '/auth/strava/callback',
+  path: '/auth/strava/callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -87,8 +99,10 @@ export interface FileRoutesByFullPath {
   '/app/mobility': typeof AppMobilityRoute
   '/app/profile': typeof AppProfileRoute
   '/app/running': typeof AppRunningRoute
+  '/app/settings': typeof AppSettingsRoute
   '/app/strength': typeof AppStrengthRoute
   '/app/': typeof AppIndexRoute
+  '/auth/strava/callback': typeof AuthStravaCallbackRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -99,8 +113,10 @@ export interface FileRoutesByTo {
   '/app/mobility': typeof AppMobilityRoute
   '/app/profile': typeof AppProfileRoute
   '/app/running': typeof AppRunningRoute
+  '/app/settings': typeof AppSettingsRoute
   '/app/strength': typeof AppStrengthRoute
   '/app': typeof AppIndexRoute
+  '/auth/strava/callback': typeof AuthStravaCallbackRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -113,8 +129,10 @@ export interface FileRoutesById {
   '/app/mobility': typeof AppMobilityRoute
   '/app/profile': typeof AppProfileRoute
   '/app/running': typeof AppRunningRoute
+  '/app/settings': typeof AppSettingsRoute
   '/app/strength': typeof AppStrengthRoute
   '/app/': typeof AppIndexRoute
+  '/auth/strava/callback': typeof AuthStravaCallbackRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -128,8 +146,10 @@ export interface FileRouteTypes {
     | '/app/mobility'
     | '/app/profile'
     | '/app/running'
+    | '/app/settings'
     | '/app/strength'
     | '/app/'
+    | '/auth/strava/callback'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -140,8 +160,10 @@ export interface FileRouteTypes {
     | '/app/mobility'
     | '/app/profile'
     | '/app/running'
+    | '/app/settings'
     | '/app/strength'
     | '/app'
+    | '/auth/strava/callback'
   id:
     | '__root__'
     | '/'
@@ -153,8 +175,10 @@ export interface FileRouteTypes {
     | '/app/mobility'
     | '/app/profile'
     | '/app/running'
+    | '/app/settings'
     | '/app/strength'
     | '/app/'
+    | '/auth/strava/callback'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -162,6 +186,7 @@ export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   LoginRoute: typeof LoginRoute
   OnboardingRoute: typeof OnboardingRoute
+  AuthStravaCallbackRoute: typeof AuthStravaCallbackRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -208,6 +233,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppStrengthRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/settings': {
+      id: '/app/settings'
+      path: '/settings'
+      fullPath: '/app/settings'
+      preLoaderRoute: typeof AppSettingsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/running': {
       id: '/app/running'
       path: '/running'
@@ -243,6 +275,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCalendarRouteImport
       parentRoute: typeof AppRoute
     }
+    '/auth/strava/callback': {
+      id: '/auth/strava/callback'
+      path: '/auth/strava/callback'
+      fullPath: '/auth/strava/callback'
+      preLoaderRoute: typeof AuthStravaCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -252,6 +291,7 @@ interface AppRouteChildren {
   AppMobilityRoute: typeof AppMobilityRoute
   AppProfileRoute: typeof AppProfileRoute
   AppRunningRoute: typeof AppRunningRoute
+  AppSettingsRoute: typeof AppSettingsRoute
   AppStrengthRoute: typeof AppStrengthRoute
   AppIndexRoute: typeof AppIndexRoute
 }
@@ -262,6 +302,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppMobilityRoute: AppMobilityRoute,
   AppProfileRoute: AppProfileRoute,
   AppRunningRoute: AppRunningRoute,
+  AppSettingsRoute: AppSettingsRoute,
   AppStrengthRoute: AppStrengthRoute,
   AppIndexRoute: AppIndexRoute,
 }
@@ -273,6 +314,7 @@ const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   LoginRoute: LoginRoute,
   OnboardingRoute: OnboardingRoute,
+  AuthStravaCallbackRoute: AuthStravaCallbackRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -1,12 +1,12 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import type { Json } from "@/integrations/supabase/types";
 import type { PlanoTreino } from "./plan-types";
 
 const GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 const MODEL = "google/gemini-2.5-flash";
 
-// ==================== SYSTEM PROMPTS ====================
 const SYSTEM_PROMPT_PLANO = `Você é um treinador de corrida e força para atletas amadores que treinam em casa.
 Gere um plano semanal personalizado em português brasileiro, equilibrando corrida (aquecimento, treino principal, desaquecimento)
 e musculação adaptada ao equipamento disponível, com dias de mobilidade e descanso.
@@ -19,7 +19,7 @@ Retorne APENAS um JSON válido seguindo EXATAMENTE este schema (sem markdown, se
       "tarefas": [
         { "id": "seg-1", "tipo": "corrida"|"musculacao"|"mobilidade"|"descanso", "titulo": "string", "detalhe": "string", "duracao_min": number }
       ]
-    } // sempre 7 dias
+    }
   ],
   "corrida": [
     { "dia": "Segunda-feira", "titulo": "string", "aquecimento": "string", "principal": "string", "desaquecimento": "string", "notas": "string" }
@@ -45,7 +45,6 @@ Seu objetivo é ser o treinador pessoal dele: motivar, prevenir lesões, otimiza
 - Você pode e deve sugerir alterações no plano quando necessário usando a ferramenta updatePlano.
 - Seja um treinador que realmente se importa com o atleta.`;
 
-// ==================== CALL GATEWAY ====================
 async function callGateway(
   messages: Array<{ role: string; content: string }>,
   jsonMode = false
@@ -134,7 +133,7 @@ export const gerarPlano = createServerFn({ method: "POST" })
       .update({
         name: data.name,
         nivel_corrida: data.nivel_corrida,
-        dias_disponiveis: data.dias_disponiveis,
+        dias_disponiveis: [data.dias_disponiveis], // banco espera number[]
         objetivo_principal: data.objetivo_principal,
         equipamentos_casa: data.equipamentos_casa,
         onboarding_completed: true,
@@ -147,9 +146,16 @@ export const gerarPlano = createServerFn({ method: "POST" })
       .eq("user_id", userId)
       .eq("ativo", true);
 
+    const planoJson = plano as unknown as Json;
+
     const { data: inserted, error } = await supabase
       .from("planos_treino")
-      .insert({ user_id: userId, plano: plano, ativo: true })
+      .insert({
+        user_id: userId,
+        plano: planoJson,
+        plano_json: planoJson, // coluna obrigatória no banco
+        ativo: true,
+      })
       .select("id")
       .single();
 
@@ -259,9 +265,12 @@ export const updatePlano = createServerFn({ method: "POST" })
       .eq("user_id", userId)
       .eq("id", data.planoId);
 
+    const novoPlanoJson = data.novoPlano as unknown as Json;
+
     const { error } = await supabase.from("planos_treino").insert({
       user_id: userId,
-      plano: data.novoPlano,
+      plano: novoPlanoJson,
+      plano_json: novoPlanoJson, // coluna obrigatória no banco
       ativo: true,
     });
 
@@ -270,7 +279,7 @@ export const updatePlano = createServerFn({ method: "POST" })
     return { success: true, message: "Plano atualizado com sucesso pela IA!" };
   });
 
-// ==================== STRAVA INTEGRATION ====================
+// ==================== STRAVA ====================
 export const connectStrava = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
@@ -309,7 +318,7 @@ export const saveStravaToken = createServerFn({ method: "POST" })
       user_id: userId,
       access_token: tokenData.access_token,
       refresh_token: tokenData.refresh_token,
-      expires_at: new Date(Date.now() + tokenData.expires_in * 1000),
+      expires_at: new Date(Date.now() + tokenData.expires_in * 1000).toISOString(), // Date → string
       athlete_id: tokenData.athlete.id,
     });
 
