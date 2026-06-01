@@ -1,7 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { saveStravaToken } from "@/lib/ai.functions";
-import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/auth/strava/callback")({
@@ -10,7 +9,6 @@ export const Route = createFileRoute("/auth/strava/callback")({
 
 function StravaCallback() {
   const navigate = useNavigate();
-  const saveToken = useServerFn(saveStravaToken);
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -24,7 +22,7 @@ function StravaCallback() {
     }
 
     if (code) {
-      saveToken({ data: { code } })
+      saveStravaToken({ code })
         .then(() => {
           toast.success("Strava conectado com sucesso!");
           navigate({ to: "/app/settings" });
@@ -34,7 +32,7 @@ function StravaCallback() {
           navigate({ to: "/app/settings" });
         });
     }
-  }, [navigate, saveToken]);
+  }, [navigate]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">

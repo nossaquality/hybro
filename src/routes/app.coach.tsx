@@ -4,7 +4,6 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Sparkles, Send, User, Copy, Edit2, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useServerFn } from "@tanstack/react-start";
 import { chatCoach } from "@/lib/ai.functions";
 import { getChatMessages } from "@/lib/data";
 import { toast } from "sonner";
@@ -27,7 +26,6 @@ function Coach() {
   const [editText, setEditText] = useState("");
 
   const scrollRef = useRef<HTMLDivElement>(null);
-  const send = useServerFn(chatCoach);
 
   useEffect(() => {
     getChatMessages().then((hist) => {
@@ -73,7 +71,7 @@ function Coach() {
     setThinking(true);
 
     try {
-      const { reply } = await send({ data: { message: trimmed } });
+      const { reply } = await chatCoach({ message: trimmed });
       setMessages((prev) => [
         ...prev,
         {

@@ -2,7 +2,6 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { connectStrava } from "@/lib/ai.functions";
-import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { Link } from "@tanstack/react-router";
 import { ArrowLeft, Activity } from "lucide-react";
@@ -12,11 +11,10 @@ export const Route = createFileRoute("/app/settings")({
 });
 
 function SettingsPage() {
-  const connect = useServerFn(connectStrava);
 
   async function handleConnect() {
     try {
-      const { authUrl } = await connect({});
+      const { authUrl } = await connectStrava();
       window.location.href = authUrl;
     } catch (err) {
       toast.error("Erro ao conectar com Strava");
